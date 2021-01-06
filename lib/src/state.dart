@@ -13,111 +13,83 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import 'package:logging/logging.dart';
-import 'package:meta/meta.dart';
+import 'package:quiver/collection.dart';
+import 'package:quiver/core.dart';
 
-final _log = Logger('statecharts/State');
+// final _log = Logger('statecharts/State');
 
-typedef Action = void Function();
+typedef Action<T> = void Function(T context);
+typedef Condition<T> = bool Function(T context);
 
-abstract class ChildState {}
-
-class FinalState implements ChildState {
+abstract class StateNode {
   final String id;
-  final Action onEntry;
-  final Action onExit;
+  final Action? onEntry;
+  final Action? onExit;
 
-  final dynamic doneData;
+  const StateNode(this.id, this.onEntry, this.onExit) : assert(id != '');
 
-  FinalState({this.id, this.onEntry, this.onExit, this.doneData});
+  @override
+  bool operator ==(Object other) =>
+      other is StateNode &&
+      id == other.id &&
+      onEntry == other.onEntry &&
+      onExit == other.onExit;
+
+  @override
+  int get hashCode => hash3(id, onEntry, onExit);
 }
 
-class InitialState {
-  final Transition transition;
+class State extends StateNode {
+  final List<Transition>? transitions;
 
-  InitialState({@required this.transition});
+  final bool isInitial;
+  final bool isTerminal;
+
+  const State(id,
+      {this.transitions,
+      onEntry,
+      onExit,
+      this.isInitial = false,
+      this.isTerminal = false})
+      : super(id, onEntry, onExit);
+
+  @override
+  bool operator ==(Object other) =>
+      other is State &&
+      super == (other) &&
+      listsEqual(transitions, other.transitions) &&
+      isInitial == other.isInitial &&
+      isTerminal == other.isTerminal;
+
+  @override
+  int get hashCode =>
+      hashObjects([id, onEntry, onExit, transitions, isInitial, isTerminal]);
 }
 
-// class Invoke {
-//   final Uri type;
-
-//   final String typeExpr;
-//   final Uri src;
-
-//   final String srcExpr;
-//   final String id;
-
-//   final String idLocation;
-
-//   final String nameList;
-//   final bool autoForward;
-
-//   final Param param;
-//   final Finalize finalize;
-//   final Content content;
-
-//   Invoke(
-//       {this.type,
-//       this.typeExpr,
-//       this.src,
-//       this.srcExpr,
-//       this.id,
-//       this.idLocation,
-//       this.nameList,
-//       this.autoForward,
-//       this.param,
-//       this.finalize,
-//       this.content});
-// }
-
-abstract class ParallelChild {}
-
-class ParallelStates implements ChildState, ParallelChild {
+class StateMachine {
   final String id;
-  final Transition transition;
-  final Action onEntry;
-  final Action onExit;
-  List<ParallelChild> body;
+  final Iterable<StateNode> states;
 
-  final Action action;
+  State get initialState => states.firstWhere((s) => s is State && s.isInitial,
+          orElse: () => throw AssertionError('initial state required for $id'))
+      as State;
 
-  ParallelStates(
-      this.id, this.transition, this.onEntry, this.onExit, this.action);
+  const StateMachine(this.id, this.states) : assert(id != '');
 }
 
-class State implements ChildState, ParallelChild {
-  final String id;
-  final String initial;
-  final Iterable<Transition> transitions;
-  final Action onEntry;
-  final Action onExit;
-  final Transition initialState;
-  final List<ChildState> body;
+class Statechart {
+  final StateMachine container;
 
-  State(
-      {this.id,
-      this.initial,
-      this.transitions,
-      this.onEntry,
-      this.onExit,
-      this.initialState,
-      this.body});
-
-  bool get isAtomic => body?.isNotEmpty ?? true;
+  const Statechart(this.container);
 }
 
 class Transition {
-  final String event;
-  final String cond;
-  final String target;
-  final String type;
+  final String? event;
+  final Condition? condition;
+  final String targetId;
 
-  final Action action;
+  final Action? action;
 
-  Transition(
-      {this.event,
-      this.cond,
-      this.target,
-      this.type = 'external',
-      this.action});
+  const Transition(this.targetId, {this.event, this.condition, this.action})
+      : assert(event != null || condition != null);
 }
