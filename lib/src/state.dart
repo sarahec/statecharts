@@ -22,11 +22,11 @@ typedef Action<T> = void Function(T context);
 typedef Condition<T> = bool Function(T context);
 
 abstract class StateNode {
-  final String id;
+  final Symbol id;
   final Action? onEntry;
   final Action? onExit;
 
-  const StateNode(this.id, this.onEntry, this.onExit) : assert(id != '');
+  const StateNode(this.id, this.onEntry, this.onExit);
 
   @override
   bool operator ==(Object other) =>
@@ -67,14 +67,14 @@ class State extends StateNode {
 }
 
 class StateMachine {
-  final String id;
+  final Symbol id;
   final Iterable<StateNode> states;
 
   State get initialState => states.firstWhere((s) => s is State && s.isInitial,
           orElse: () => throw AssertionError('initial state required for $id'))
       as State;
 
-  const StateMachine(this.id, this.states) : assert(id != '');
+  const StateMachine(this.id, this.states);
 }
 
 class Statechart {
@@ -86,7 +86,7 @@ class Statechart {
 class Transition {
   final String? event;
   final Condition? condition;
-  final String targetId;
+  final Symbol targetId;
 
   final Action? action;
 
