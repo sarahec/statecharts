@@ -21,67 +21,73 @@ import 'package:quiver/core.dart';
 typedef Action<T> = void Function(T context);
 typedef Condition<T> = bool Function(T context);
 
-abstract class StateNode {
+class State implements StateNode {
+  @override
   final Symbol id;
-  final Action? onEntry;
-  final Action? onExit;
-
-  const StateNode(this.id, this.onEntry, this.onExit);
-
-  @override
-  bool operator ==(Object other) =>
-      other is StateNode &&
-      id == other.id &&
-      onEntry == other.onEntry &&
-      onExit == other.onExit;
-
-  @override
-  int get hashCode => hash3(id, onEntry, onExit);
-}
-
-class State extends StateNode {
-  final List<Transition>? transitions;
-
   final bool isInitial;
   final bool isTerminal;
-
-  const State(id,
-      {this.transitions,
-      onEntry,
-      onExit,
-      this.isInitial = false,
-      this.isTerminal = false})
-      : super(id, onEntry, onExit);
-
   @override
-  bool operator ==(Object other) =>
-      other is State &&
-      super == (other) &&
-      listsEqual(transitions, other.transitions) &&
-      isInitial == other.isInitial &&
-      isTerminal == other.isTerminal;
+  final Action? onEntry;
+  @override
+  final Action? onExit;
+  final List<Transition>? transitions;
+
+  const State(this.id,
+      {this.transitions,
+      this.onEntry,
+      this.onExit,
+      this.isInitial = false,
+      this.isTerminal = false});
 
   @override
   int get hashCode =>
       hashObjects([id, onEntry, onExit, transitions, isInitial, isTerminal]);
+  @override
+  bool operator ==(Object other) =>
+      other is State &&
+      id == other.id &&
+      onEntry == other.onEntry &&
+      onExit == other.onExit &&
+      listsEqual(transitions, other.transitions) &&
+      isInitial == other.isInitial &&
+      isTerminal == other.isTerminal;
 }
 
-class StateMachine {
+class Statechart implements StateContainer {
+  @override
   final Symbol id;
+  @override
+  final Action? onEntry;
+  @override
+  final Action? onExit;
+  final StateMachine container;
+
+  const Statechart(this.id, this.container, {this.onEntry, this.onExit});
+}
+
+class StateMachine implements StateContainer {
+  @override
+  final Symbol id;
+  @override
+  final Action? onEntry;
+  @override
+  final Action? onExit;
   final Iterable<StateNode> states;
+
+  const StateMachine(this.id, this.states, {this.onEntry, this.onExit});
 
   State get initialState => states.firstWhere((s) => s is State && s.isInitial,
           orElse: () => throw AssertionError('initial state required for $id'))
       as State;
-
-  const StateMachine(this.id, this.states);
 }
 
-class Statechart {
-  final StateMachine container;
-
-  const Statechart(this.container);
+abstract class StateNode {
+  Symbol get id;
+  Action? get onEntry;
+  Action? get onExit;
 }
+
+abstract class StateContainer extends StateNode {}
 
 class Transition {
   final String? event;
