@@ -21,3 +21,5 @@ doc/api/
 
 # Don't store generated code until it's time to publish
 *.generated.dart
+.fvm/flutter_sdk
+.fvm/fvm_config.json
