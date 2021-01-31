@@ -18,21 +18,50 @@ import 'package:quiver/core.dart';
 
 // final _log = Logger('statecharts/State');
 
+/// Used for entry and exit actions (in and out of a state or container)
 typedef Action<T> = void Function(T context);
+
+/// Used in determing whether or not to take a transition
 typedef Condition<T> = bool Function(T context);
 
-class State<T> implements StateNode<T> {
-  @override
+/// Common class for the states in a state machine or statechart
+abstract class StateNode<T> {
+  /// Unique identifier within its container
   final String id;
-  final bool isInitial;
-  @override
+
+  /// Action to be performed when this state or container is entered
   final Action<T>? onEntry;
-  @override
+
+  /// Action to be performed when this state or container is exited
   final Action<T>? onExit;
+
+  const StateNode(this.id, {this.onEntry, this.onExit});
+
+  Set<String> get events;
+
+  void enter(T? context) {
+    if (onEntry != null && context != null) onEntry!(context);
+  }
+
+  void exit(T? context) {
+    if (onExit != null && context != null) onExit!(context);
+  }
+}
+
+abstract class StateContainer<T> extends StateNode<T> {
+  const StateContainer(String id, {onEntry, onExit})
+      : super(id, onEntry: onEntry, onExit: onExit);
+
+  State get initialState;
+  Set<String> get paths;
+}
+
+class State<T> extends StateNode<T> {
+  final bool isInitial;
   final List<Transition<T>>? transitions;
 
-  const State(this.id,
-      {this.transitions, this.onEntry, this.onExit, this.isInitial = false});
+  const State(id, {this.transitions, onEntry, onExit, this.isInitial = false})
+      : super(id, onEntry: onEntry, onExit: onExit);
 
   @override
   Set<String> get events => transitions == null
@@ -54,57 +83,33 @@ class State<T> implements StateNode<T> {
       listsEqual(transitions, other.transitions) &&
       isInitial == other.isInitial;
 
-  void enter(T? context) {
-    if (onEntry != null && context != null) onEntry!(context);
-  }
-
-  void exit(T? context) {
-    if (onExit != null && context != null) onExit!(context);
-  }
-
   bool hasTransitionFor({required String event}) => events.contains(event);
 
   Transition<T> transitionFor({required String event}) =>
       transitions!.firstWhere((t) => t.event == event);
 }
 
-class Statechart<T> implements StateContainer<T> {
-  @override
-  final String id;
-  @override
-  final Action<T>? onEntry;
-  @override
-  final Action<T>? onExit;
-  final StateMachine<T> stateMachine;
+class Transition<T> {
+  final Condition<T>? condition;
+  final String? event;
+  final String targetId;
 
-  const Statechart(this.id, this.stateMachine, {this.onEntry, this.onExit});
+  const Transition(this.targetId, {this.event, this.condition})
+      : assert(event != null || condition != null);
 
-  @override
-  Set<String> get events => stateMachine.events;
+  bool canExecute({String? event, T? context}) => this.event == null
+      ? meetsCondition(context)
+      : this.event == event && meetsCondition(context);
 
-  @override
-  State<T> get initialState => stateMachine.initialState;
-
-  @override
-  Set<String> get paths =>
-      {for (var event in stateMachine.events) '$id.$event'};
+  bool meetsCondition(T? context) =>
+      condition == null || (context != null && condition!(context));
 }
 
-abstract class StateContainer<T> extends StateNode<T> {
-  State get initialState;
-  Set<String> get paths;
-}
-
-class StateMachine<T> implements StateContainer<T> {
-  @override
-  final String id;
-  @override
-  final Action<T>? onEntry;
-  @override
-  final Action<T>? onExit;
+class StateMachine<T> extends StateContainer<T> {
   final Iterable<State<T>> states;
 
-  const StateMachine(this.id, this.states, {this.onEntry, this.onExit});
+  const StateMachine(id, this.states, {onEntry, onExit})
+      : super(id, onEntry: onEntry, onExit: onExit);
 
   @override
   Set<String> get events {
@@ -125,25 +130,19 @@ class StateMachine<T> implements StateContainer<T> {
   StateNode<T> findChild(String id) => states.firstWhere((s) => s.id == id);
 }
 
-abstract class StateNode<T> {
-  Set<String> get events;
-  String get id;
-  Action<T>? get onEntry;
-  Action<T>? get onExit;
-}
+class Statechart<T> extends StateContainer<T> {
+  final StateMachine<T> stateMachine;
 
-class Transition<T> {
-  final Condition<T>? condition;
-  final String? event;
-  final String targetId;
+  const Statechart(id, this.stateMachine, {onEntry, onExit})
+      : super(id, onEntry: onEntry, onExit: onExit);
 
-  bool canExecute({String? event, T? context}) => this.event == null
-      ? meetsCondition(context)
-      : this.event == event && meetsCondition(context);
+  @override
+  Set<String> get events => stateMachine.events;
 
-  bool meetsCondition(T? context) =>
-      condition == null || (context != null && condition!(context));
+  @override
+  State<T> get initialState => stateMachine.initialState;
 
-  const Transition(this.targetId, {this.event, this.condition})
-      : assert(event != null || condition != null);
+  @override
+  Set<String> get paths =>
+      {for (var event in stateMachine.events) '$id.$event'};
 }
