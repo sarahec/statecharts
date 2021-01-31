@@ -46,6 +46,7 @@ class StateMachineEngine<T> implements Engine<T> {
   void enterInitialState() {
     final initialState = stateMachine.initialState;
     _currentState = initialState;
+    stateMachine.enter(context);
     initialState.enter(context);
   }
 

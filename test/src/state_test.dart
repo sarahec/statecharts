@@ -1,3 +1,4 @@
+import 'package:mockito/mockito.dart';
 /**
  * Copyright 2021 Google LLC
  *
@@ -16,6 +17,15 @@
 import 'package:statecharts/statecharts.dart';
 import 'package:test/test.dart';
 
+class Lightbulb {
+  int cycleCount = 0;
+  bool? isOn;
+  bool? wasOn;
+  bool masterSwitch = false;
+}
+
+class MockBulb extends Mock implements Lightbulb {}
+
 void main() {
   const turnOn = 'turnOn';
   const turnOff = 'turnOff';
@@ -23,20 +33,24 @@ void main() {
   final transitionOn = Transition<Lightbulb>('on',
       condition: (b) => b.cycleCount < 10, event: turnOn);
   const transitionOff = Transition<Lightbulb>('off', event: turnOff);
-  final lightswitch = StateMachine<Lightbulb>('lightswitch', [
-    State<Lightbulb>('off',
-        isInitial: true,
-        transitions: [transitionOn],
-        onEntry: (b) => b.isOn = false,
-        onExit: (b) => b.wasOn = false),
-    State('on',
-        transitions: [transitionOff],
-        onEntry: (b) => b.isOn = true,
-        onExit: (b) {
-          b.wasOn = true;
-          b.cycleCount += 1;
-        }),
-  ]);
+  final lightswitch = StateMachine<Lightbulb>(
+    'lightswitch',
+    [
+      State('off',
+          isInitial: true,
+          transitions: [transitionOn],
+          onEntry: (b) => b.isOn = false,
+          onExit: (b) => b.wasOn = false),
+      State('on',
+          transitions: [transitionOff],
+          onEntry: (b) => b.isOn = true,
+          onExit: (b) {
+            b.wasOn = true;
+            b.cycleCount += 1;
+          })
+    ],
+    onEntry: (bulb) => bulb.masterSwitch = true,
+  );
 
   group('lightswitch', () {
     test('initial state',
@@ -68,10 +82,19 @@ void main() {
       engine = Engine(lightswitch, bulb)..enterInitialState();
     });
 
+    test('before initial state', () {
+      final mock = MockBulb();
+      Engine(lightswitch, mock);
+      verifyZeroInteractions(mock);
+    });
+
     test('initial state', () {
+      // Don't try to access the current state before calling `enterInitialState`
+      // or you'll get a null check error. `setUp` called it for us
       expect(engine.currentState, isNotNull);
       expect(bulb.isOn, isFalse);
       expect(bulb.wasOn, isNull);
+      expect(bulb.masterSwitch, isTrue);
     });
 
     test('switches states', () {
@@ -98,10 +121,4 @@ void main() {
       expect(engine.context?.cycleCount, equals(10));
     });
   });
-}
-
-class Lightbulb {
-  int cycleCount = 0;
-  bool? isOn;
-  bool? wasOn;
 }
