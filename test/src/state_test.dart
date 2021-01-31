@@ -13,19 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-import 'package:test/test.dart';
 import 'package:statecharts/statecharts.dart';
+import 'package:test/test.dart';
 
 void main() {
   const turnOn = 'turnOn';
   const turnOff = 'turnOff';
 
-  const transitionOn = Transition('on', event: turnOn);
-  const transitionOff = Transition('off', event: turnOff);
-  const lightswitch = StateMachine('lightswitch', [
-    State('off', isInitial: true, transitions: [transitionOn]),
-    State('on', transitions: [transitionOff]),
+  final transitionOn = Transition<Lightbulb>('on',
+      condition: (b) => b.cycleCount < 10, event: turnOn);
+  const transitionOff = Transition<Lightbulb>('off', event: turnOff);
+  final lightswitch = StateMachine<Lightbulb>('lightswitch', [
+    State<Lightbulb>('off',
+        isInitial: true,
+        transitions: [transitionOn],
+        onEntry: (b) => b.isOn = false,
+        onExit: (b) => b.wasOn = false),
+    State('on',
+        transitions: [transitionOff],
+        onEntry: (b) => b.isOn = true,
+        onExit: (b) {
+          b.wasOn = true;
+          b.cycleCount += 1;
+        }),
   ]);
 
   group('lightswitch', () {
@@ -51,21 +61,47 @@ void main() {
 
   group('engine', () {
     var engine;
+    var bulb;
 
     setUp(() {
-      engine = Engine(lightswitch);
+      bulb = Lightbulb();
+      engine = Engine(lightswitch, bulb)..enterInitialState();
     });
 
-    test('initial state', () => expect(engine.isInitialState, isTrue));
+    test('initial state', () {
+      expect(engine.currentState, isNotNull);
+      expect(bulb.isOn, isFalse);
+      expect(bulb.wasOn, isNull);
+    });
 
-    group('execution', () {
-      test('switches states', () {
-        expect(engine.currentState.id, equals('off'));
+    test('switches states', () {
+      expect(engine.currentState.id, equals('off'));
+      engine.execute(turnOn);
+      expect(engine.currentState.id, equals('on'));
+      engine.execute(turnOff);
+      expect(engine.currentState.id, equals('off'));
+    });
+
+    test('calls onEntry', () {
+      expect(bulb.isOn, isFalse);
+      engine.execute(turnOn);
+      expect(bulb.isOn, isTrue);
+      engine.execute(turnOff);
+      expect(bulb.isOn, isFalse);
+    });
+
+    test('tests entry condition in transition', () {
+      for (var i = 0; i < 15; i++) {
         engine.execute(turnOn);
-        expect(engine.currentState.id, equals('on'));
         engine.execute(turnOff);
-        expect(engine.currentState.id, equals('off'));
-      });
+      }
+      expect(engine.context?.cycleCount, equals(10));
     });
   });
+}
+
+class Lightbulb {
+  int cycleCount = 0;
+  bool? isOn;
+  bool? wasOn;
 }

@@ -21,23 +21,18 @@ import 'package:quiver/core.dart';
 typedef Action<T> = void Function(T context);
 typedef Condition<T> = bool Function(T context);
 
-class State implements StateNode {
+class State<T> implements StateNode<T> {
   @override
   final String id;
   final bool isInitial;
-  final bool isTerminal;
   @override
-  final Action? onEntry;
+  final Action<T>? onEntry;
   @override
-  final Action? onExit;
-  final List<Transition>? transitions;
+  final Action<T>? onExit;
+  final List<Transition<T>>? transitions;
 
   const State(this.id,
-      {this.transitions,
-      this.onEntry,
-      this.onExit,
-      this.isInitial = false,
-      this.isTerminal = false});
+      {this.transitions, this.onEntry, this.onExit, this.isInitial = false});
 
   @override
   Set<String> get events => transitions == null
@@ -48,6 +43,8 @@ class State implements StateNode {
   int get hashCode =>
       hashObjects([id, onEntry, onExit, transitions, isInitial, isTerminal]);
 
+  bool get isTerminal => transitions == null || transitions!.isEmpty;
+
   @override
   bool operator ==(Object other) =>
       other is State &&
@@ -55,23 +52,30 @@ class State implements StateNode {
       onEntry == other.onEntry &&
       onExit == other.onExit &&
       listsEqual(transitions, other.transitions) &&
-      isInitial == other.isInitial &&
-      isTerminal == other.isTerminal;
+      isInitial == other.isInitial;
+
+  void enter(T? context) {
+    if (onEntry != null && context != null) onEntry!(context);
+  }
+
+  void exit(T? context) {
+    if (onExit != null && context != null) onExit!(context);
+  }
 
   bool hasTransitionFor({required String event}) => events.contains(event);
 
-  Transition transitionFor({required String event}) =>
+  Transition<T> transitionFor({required String event}) =>
       transitions!.firstWhere((t) => t.event == event);
 }
 
-class Statechart implements StateContainer {
+class Statechart<T> implements StateContainer<T> {
   @override
   final String id;
   @override
-  final Action? onEntry;
+  final Action<T>? onEntry;
   @override
-  final Action? onExit;
-  final StateMachine stateMachine;
+  final Action<T>? onExit;
+  final StateMachine<T> stateMachine;
 
   const Statechart(this.id, this.stateMachine, {this.onEntry, this.onExit});
 
@@ -79,26 +83,26 @@ class Statechart implements StateContainer {
   Set<String> get events => stateMachine.events;
 
   @override
-  State get initialState => stateMachine.initialState;
+  State<T> get initialState => stateMachine.initialState;
 
   @override
   Set<String> get paths =>
       {for (var event in stateMachine.events) '$id.$event'};
 }
 
-abstract class StateContainer extends StateNode {
+abstract class StateContainer<T> extends StateNode<T> {
   State get initialState;
   Set<String> get paths;
 }
 
-class StateMachine implements StateContainer {
+class StateMachine<T> implements StateContainer<T> {
   @override
   final String id;
   @override
-  final Action? onEntry;
+  final Action<T>? onEntry;
   @override
-  final Action? onExit;
-  final Iterable<State> states;
+  final Action<T>? onExit;
+  final Iterable<State<T>> states;
 
   const StateMachine(this.id, this.states, {this.onEntry, this.onExit});
 
@@ -113,28 +117,33 @@ class StateMachine implements StateContainer {
   }
 
   @override
-  State get initialState => states.firstWhere((s) => s.isInitial);
+  State<T> get initialState => states.firstWhere((s) => s.isInitial);
 
   @override
   Set<String> get paths => {for (var event in events) '$id.$event'};
 
-  StateNode findChild(String id) => states.firstWhere((s) => s.id == id);
+  StateNode<T> findChild(String id) => states.firstWhere((s) => s.id == id);
 }
 
-abstract class StateNode {
+abstract class StateNode<T> {
   Set<String> get events;
   String get id;
-  Action? get onEntry;
-  Action? get onExit;
+  Action<T>? get onEntry;
+  Action<T>? get onExit;
 }
 
-class Transition {
+class Transition<T> {
+  final Condition<T>? condition;
   final String? event;
-  final Condition? condition;
   final String targetId;
 
-  final Action? action;
+  bool canExecute({String? event, T? context}) => this.event == null
+      ? meetsCondition(context)
+      : this.event == event && meetsCondition(context);
 
-  const Transition(this.targetId, {this.event, this.condition, this.action})
+  bool meetsCondition(T? context) =>
+      condition == null || (context != null && condition!(context));
+
+  const Transition(this.targetId, {this.event, this.condition})
       : assert(event != null || condition != null);
 }
