@@ -58,12 +58,14 @@ void main() {
 
     test('initial state', () => expect(engine.isInitialState, isTrue));
 
-    test('execution', () {
-      expect(engine.currentState.id, equals('off'));
-      engine.execute(turnOn);
-      expect(engine.currentState.id, equals('on'));
-      engine.execute(turnOff);
-      expect(engine.currentState.id, equals('off'));
+    group('execution', () {
+      test('switches states', () {
+        expect(engine.currentState.id, equals('off'));
+        engine.execute(turnOn);
+        expect(engine.currentState.id, equals('on'));
+        engine.execute(turnOff);
+        expect(engine.currentState.id, equals('off'));
+      });
     });
   });
 }

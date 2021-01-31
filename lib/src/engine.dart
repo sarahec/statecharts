@@ -22,7 +22,7 @@ abstract class Engine {
 
   bool get isInitialState;
 
-  bool canExecute(String event);
+  bool hasTransitionFor(String event);
 
   void execute(String event);
 }
@@ -42,16 +42,20 @@ class StateMachineEngine implements Engine {
   bool get isInitialState => _currentState == stateMachine.initialState;
 
   @override
-  bool canExecute(String event) =>
+  bool hasTransitionFor(String event) =>
       _currentState.transitions?.any((t) => t.event == event) ?? false;
+
+  void executeTransition(Transition transition) =>
+      _currentState = stateMachine.findChild(transition.targetId);
+
+  Transition transitionFor(String event) => _currentState?.transitions
+      ?.firstWhere((Transition t) => t.event == event);
 
   @override
   void execute(String event) {
-    String? nextId = _currentState?.transitions
-        ?.firstWhere((Transition t) => t.event == event)
-        ?.targetId;
-    if (nextId != null) {
-      _currentState = stateMachine.findChild(nextId);
+    if (hasTransitionFor(event)) {
+      final transition = transitionFor(event);
+      executeTransition(transition);
     }
   }
 }
