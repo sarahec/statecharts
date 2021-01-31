@@ -23,7 +23,7 @@ typedef Condition<T> = bool Function(T context);
 
 class State implements StateNode {
   @override
-  final Symbol id;
+  final String id;
   final bool isInitial;
   final bool isTerminal;
   @override
@@ -40,8 +40,14 @@ class State implements StateNode {
       this.isTerminal = false});
 
   @override
+  Set<String> get events => transitions == null
+      ? {}
+      : {for (var t in transitions!.where((t) => t.event != null)) t.event!};
+
+  @override
   int get hashCode =>
       hashObjects([id, onEntry, onExit, transitions, isInitial, isTerminal]);
+
   @override
   bool operator ==(Object other) =>
       other is State &&
@@ -51,48 +57,81 @@ class State implements StateNode {
       listsEqual(transitions, other.transitions) &&
       isInitial == other.isInitial &&
       isTerminal == other.isTerminal;
+
+  bool hasTransitionFor({required String event}) => events.contains(event);
+
+  Transition transitionFor({required String event}) =>
+      transitions!.firstWhere((t) => t.event == event);
 }
 
 class Statechart implements StateContainer {
   @override
-  final Symbol id;
+  final String id;
   @override
   final Action? onEntry;
   @override
   final Action? onExit;
-  final StateMachine container;
+  final StateMachine stateMachine;
 
-  const Statechart(this.id, this.container, {this.onEntry, this.onExit});
+  const Statechart(this.id, this.stateMachine, {this.onEntry, this.onExit});
+
+  @override
+  Set<String> get events => stateMachine.events;
+
+  @override
+  State get initialState => stateMachine.initialState;
+
+  @override
+  Set<String> get paths =>
+      {for (var event in stateMachine.events) '$id.$event'};
+}
+
+abstract class StateContainer extends StateNode {
+  State get initialState;
+  Set<String> get paths;
 }
 
 class StateMachine implements StateContainer {
   @override
-  final Symbol id;
+  final String id;
   @override
   final Action? onEntry;
   @override
   final Action? onExit;
-  final Iterable<StateNode> states;
+  final Iterable<State> states;
 
   const StateMachine(this.id, this.states, {this.onEntry, this.onExit});
 
-  State get initialState => states.firstWhere((s) => s is State && s.isInitial,
-          orElse: () => throw AssertionError('initial state required for $id'))
-      as State;
+  @override
+  Set<String> get events {
+    final result = <String>{};
+
+    for (var s in states) {
+      result.addAll(s.events);
+    }
+    return result;
+  }
+
+  @override
+  State get initialState => states.firstWhere((s) => s.isInitial);
+
+  @override
+  Set<String> get paths => {for (var event in events) '$id.$event'};
+
+  StateNode findChild(String id) => states.firstWhere((s) => s.id == id);
 }
 
 abstract class StateNode {
-  Symbol get id;
+  Set<String> get events;
+  String get id;
   Action? get onEntry;
   Action? get onExit;
 }
 
-abstract class StateContainer extends StateNode {}
-
 class Transition {
   final String? event;
   final Condition? condition;
-  final Symbol targetId;
+  final String targetId;
 
   final Action? action;
 

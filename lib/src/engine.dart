@@ -13,5 +13,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import '../statecharts.dart';
 
-class Engine {}
+abstract class Engine {
+  factory Engine(stateMachine) => StateMachineEngine(stateMachine);
+
+  State get currentState;
+
+  bool get isInitialState;
+
+  bool canExecute(String event);
+
+  void execute(String event);
+}
+
+class StateMachineEngine implements Engine {
+  var _currentState;
+
+  final StateMachine stateMachine;
+
+  StateMachineEngine(this.stateMachine)
+      : _currentState = stateMachine.initialState;
+
+  @override
+  State get currentState => _currentState;
+
+  @override
+  bool get isInitialState => _currentState == stateMachine.initialState;
+
+  @override
+  bool canExecute(String event) =>
+      _currentState.transitions?.any((t) => t.event == event) ?? false;
+
+  @override
+  void execute(String event) {
+    String? nextId = _currentState?.transitions
+        ?.firstWhere((Transition t) => t.event == event)
+        ?.targetId;
+    if (nextId != null) {
+      _currentState = stateMachine.findChild(nextId);
+    }
+  }
+}
