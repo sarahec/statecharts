@@ -1,4 +1,3 @@
-import 'package:mockito/mockito.dart';
 /**
  * Copyright 2021 Google LLC
  *
@@ -24,35 +23,35 @@ class Lightbulb {
   bool masterSwitch = false;
 }
 
-class MockBulb extends Mock implements Lightbulb {}
-
 void main() {
   const turnOn = 'turnOn';
   const turnOff = 'turnOff';
 
   final transitionOn = Transition<Lightbulb>('on',
       condition: (b) => b.cycleCount < 10, event: turnOn);
-  const transitionOff = Transition<Lightbulb>('off', event: turnOff);
+  final transitionOff = const Transition<Lightbulb>('off', event: turnOff);
+  final stateOff = State('off',
+      isInitial: true,
+      transitions: [transitionOn],
+      onEntry: (b) => b.isOn = false,
+      onExit: (b) => b.wasOn = false);
+  final stateOn = State('on',
+      transitions: [transitionOff],
+      onEntry: (b) => b.isOn = true,
+      onExit: (b) {
+        b.wasOn = true;
+        b.cycleCount += 1;
+      });
   final lightswitch = StateMachine<Lightbulb>(
     'lightswitch',
     [
-      State('off',
-          isInitial: true,
-          transitions: [transitionOn],
-          onEntry: (b) => b.isOn = false,
-          onExit: (b) => b.wasOn = false),
-      State('on',
-          transitions: [transitionOff],
-          onEntry: (b) => b.isOn = true,
-          onExit: (b) {
-            b.wasOn = true;
-            b.cycleCount += 1;
-          })
+      stateOff,
+      stateOn,
     ],
     onEntry: (bulb) => bulb.masterSwitch = true,
   );
 
-  group('lightswitch', () {
+  group('state machine', () {
     test('initial state',
         () => expect(lightswitch.initialState.id, equals('off')));
 
@@ -76,28 +75,19 @@ void main() {
   group('engine', () {
     var engine;
     var bulb;
-
     setUp(() {
       bulb = Lightbulb();
-      engine = Engine(lightswitch, bulb)..enterInitialState();
-    });
-
-    test('before initial state', () {
-      final mock = MockBulb();
-      Engine(lightswitch, mock);
-      verifyZeroInteractions(mock);
+      engine = Engine(lightswitch, bulb);
     });
 
     test('initial state', () {
       // Don't try to access the current state before calling `enterInitialState`
-      // or you'll get a null check error. `setUp` called it for us
-      expect(engine.currentState, isNotNull);
-      expect(bulb.isOn, isFalse);
-      expect(bulb.wasOn, isNull);
-      expect(bulb.masterSwitch, isTrue);
+      engine.enterInitialState();
+      expect(engine.currentState, equals(stateOff));
     });
 
     test('switches states', () {
+      engine.enterInitialState();
       expect(engine.currentState.id, equals('off'));
       engine.execute(turnOn);
       expect(engine.currentState.id, equals('on'));
@@ -106,6 +96,7 @@ void main() {
     });
 
     test('calls onEntry', () {
+      engine.enterInitialState();
       expect(bulb.isOn, isFalse);
       engine.execute(turnOn);
       expect(bulb.isOn, isTrue);
@@ -114,6 +105,7 @@ void main() {
     });
 
     test('tests entry condition in transition', () {
+      engine.enterInitialState();
       for (var i = 0; i < 15; i++) {
         engine.execute(turnOn);
         engine.execute(turnOff);

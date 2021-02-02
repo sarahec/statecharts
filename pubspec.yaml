@@ -29,3 +29,7 @@ dependencies:
 dev_dependencies:
   test: ^1.16.0-nullsafety.13
   mockito: ^5.0.0-nullsafety.5
+
+# Resolve dependency conflict in coverage (used by test)
+dependency_overrides:
+  logging: ^1.0.0-nullsafety.0

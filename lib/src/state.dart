@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import 'package:meta/meta.dart';
 import 'package:quiver/collection.dart';
 import 'package:quiver/core.dart';
 
@@ -53,7 +54,6 @@ abstract class StateContainer<T> extends StateNode<T> {
       : super(id, onEntry: onEntry, onExit: onExit);
 
   State get initialState;
-  Set<String> get paths;
 }
 
 class State<T> extends StateNode<T> {
@@ -83,8 +83,10 @@ class State<T> extends StateNode<T> {
       listsEqual(transitions, other.transitions) &&
       isInitial == other.isInitial;
 
+  @visibleForTesting
   bool hasTransitionFor({required String event}) => events.contains(event);
 
+  @visibleForTesting
   Transition<T> transitionFor({required String event}) =>
       transitions!.firstWhere((t) => t.event == event);
 }
@@ -124,7 +126,7 @@ class StateMachine<T> extends StateContainer<T> {
   @override
   State<T> get initialState => states.firstWhere((s) => s.isInitial);
 
-  @override
+  @visibleForTesting
   Set<String> get paths => {for (var event in events) '$id.$event'};
 
   StateNode<T> findChild(String id) => states.firstWhere((s) => s.id == id);
@@ -142,7 +144,7 @@ class Statechart<T> extends StateContainer<T> {
   @override
   State<T> get initialState => stateMachine.initialState;
 
-  @override
+  @visibleForTesting
   Set<String> get paths =>
       {for (var event in stateMachine.events) '$id.$event'};
 }
