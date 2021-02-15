@@ -25,6 +25,76 @@ typedef Action<T> = void Function(T context);
 /// Used in determing whether or not to take a transition
 typedef Condition<T> = bool Function(T context);
 
+class State<T> extends StateNode<T> {
+  final bool isInitial;
+  final List<Transition<T>> transitions;
+  final Iterable<StateMachine> substates;
+
+  const State(id,
+      {transitions = const <Transition>[],
+      onEntry,
+      onExit,
+      this.isInitial = false,
+      substates = const <StateMachine>[]})
+      : transitions = transitions,
+        substates = substates,
+        super(id, onEntry: onEntry, onExit: onExit);
+
+  @override
+  Set<String> get events =>
+      {for (var t in transitions.where((t) => t.event != null)) t.event!};
+
+  @override
+  int get hashCode =>
+      hashObjects([id, onEntry, onExit, transitions, isInitial, isTerminal]);
+
+  bool get isAtomic => substates.isEmpty;
+
+  bool get isTerminal => transitions.isEmpty;
+
+  @override
+  bool operator ==(Object other) =>
+      other is State &&
+      id == other.id &&
+      onEntry == other.onEntry &&
+      onExit == other.onExit &&
+      listsEqual(transitions, other.transitions) &&
+      isInitial == other.isInitial;
+
+  @visibleForTesting
+  bool hasTransitionFor({required String event}) => events.contains(event);
+
+  @visibleForTesting
+  Transition<T> transitionFor({required String event}) =>
+      transitions.firstWhere((t) => t.event == event);
+}
+
+class StateMachine<T> extends StateNode<T> {
+  final Iterable<State<T>> states;
+
+  const StateMachine(id, this.states, {onEntry, onExit})
+      : super(id, onEntry: onEntry, onExit: onExit);
+
+  @override
+  Set<String> get events {
+    final result = <String>{};
+
+    for (var s in states) {
+      result.addAll(s.events);
+    }
+    return result;
+  }
+
+  State<T> get initialState => states.firstWhere((s) => s.isInitial);
+
+  @visibleForTesting
+  Set<String> get paths => {for (var event in events) '$id.$event'};
+
+  StateNode<T> findState(String id) => states.firstWhere((s) => s.id == id);
+
+  bool hasState(String id) => states.any((s) => s.id == id);
+}
+
 /// Common class for the states in a state machine or statechart
 abstract class StateNode<T> {
   /// Unique identifier within its container
@@ -49,48 +119,6 @@ abstract class StateNode<T> {
   }
 }
 
-abstract class StateContainer<T> extends StateNode<T> {
-  const StateContainer(String id, {onEntry, onExit})
-      : super(id, onEntry: onEntry, onExit: onExit);
-
-  State get initialState;
-}
-
-class State<T> extends StateNode<T> {
-  final bool isInitial;
-  final List<Transition<T>>? transitions;
-
-  const State(id, {this.transitions, onEntry, onExit, this.isInitial = false})
-      : super(id, onEntry: onEntry, onExit: onExit);
-
-  @override
-  Set<String> get events => transitions == null
-      ? {}
-      : {for (var t in transitions!.where((t) => t.event != null)) t.event!};
-
-  @override
-  int get hashCode =>
-      hashObjects([id, onEntry, onExit, transitions, isInitial, isTerminal]);
-
-  bool get isTerminal => transitions == null || transitions!.isEmpty;
-
-  @override
-  bool operator ==(Object other) =>
-      other is State &&
-      id == other.id &&
-      onEntry == other.onEntry &&
-      onExit == other.onExit &&
-      listsEqual(transitions, other.transitions) &&
-      isInitial == other.isInitial;
-
-  @visibleForTesting
-  bool hasTransitionFor({required String event}) => events.contains(event);
-
-  @visibleForTesting
-  Transition<T> transitionFor({required String event}) =>
-      transitions!.firstWhere((t) => t.event == event);
-}
-
 class Transition<T> {
   final Condition<T>? condition;
   final String? event;
@@ -105,46 +133,4 @@ class Transition<T> {
 
   bool meetsCondition(T? context) =>
       condition == null || (context != null && condition!(context));
-}
-
-class StateMachine<T> extends StateContainer<T> {
-  final Iterable<State<T>> states;
-
-  const StateMachine(id, this.states, {onEntry, onExit})
-      : super(id, onEntry: onEntry, onExit: onExit);
-
-  @override
-  Set<String> get events {
-    final result = <String>{};
-
-    for (var s in states) {
-      result.addAll(s.events);
-    }
-    return result;
-  }
-
-  @override
-  State<T> get initialState => states.firstWhere((s) => s.isInitial);
-
-  @visibleForTesting
-  Set<String> get paths => {for (var event in events) '$id.$event'};
-
-  StateNode<T> findChild(String id) => states.firstWhere((s) => s.id == id);
-}
-
-class Statechart<T> extends StateContainer<T> {
-  final StateMachine<T> stateMachine;
-
-  const Statechart(id, this.stateMachine, {onEntry, onExit})
-      : super(id, onEntry: onEntry, onExit: onExit);
-
-  @override
-  Set<String> get events => stateMachine.events;
-
-  @override
-  State<T> get initialState => stateMachine.initialState;
-
-  @visibleForTesting
-  Set<String> get paths =>
-      {for (var event in stateMachine.events) '$id.$event'};
 }

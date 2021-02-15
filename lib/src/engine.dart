@@ -14,66 +14,65 @@
  * limitations under the License.
  */
 import '../statecharts.dart';
+import 'state.dart';
 
-abstract class Engine<T> {
-  factory Engine(stateMachine, [context]) =>
-      StateMachineEngine<T>(stateMachine, context);
-
-  T? get context;
-
-  State get currentState;
-
-  void enterInitialState();
-
-  void execute(String event);
-
-  bool hasTransition(String event);
-}
-
-class StateMachineEngine<T> implements Engine<T> {
-  var _currentState;
+class Engine<T> {
+  final StateMachine<T> container;
 
   final T? context;
 
-  final StateMachine<T> stateMachine;
+  final ExecutionNode<T> rootNode;
 
-  StateMachineEngine(this.stateMachine, [this.context]);
+  factory Engine(StateMachine<T> machine, [T? context]) =>
+      Engine._(machine, context)..enterInitialState();
 
-  @override
-  State get currentState => _currentState!;
+  Engine._(this.container, this.context)
+      : rootNode = ExecutionNode(container, context);
 
-  @override
-  void enterInitialState() {
-    final initialState = stateMachine.initialState;
-    _currentState = initialState;
-    stateMachine.enter(context);
-    initialState.enter(context);
-  }
+  State get currentState => rootNode.currentState;
 
-  @override
-  void execute([String? event]) {
-    if (_currentState == null) enterInitialState();
+  void enterInitialState() => rootNode.enterInitialState();
+
+  void execute(String event) {
     if (hasTransition(event)) {
       final transition = findTransition(event);
       executeTransition(transition);
     }
   }
 
-  void executeTransition(Transition<T> transition) {
-    if (transition.meetsCondition(context)) {
-      _currentState.exit(context);
-      _currentState = stateMachine.findChild(transition.targetId);
-      _currentState.enter(context);
-    }
+  void executeTransition(Transition transition) {
+    if (!transition.meetsCondition(context)) return;
+    rootNode.currentState.exit(context);
+    rootNode.executeTransition(transition);
+    rootNode.currentState.enter(context);
   }
 
-  @override
-  bool hasTransition([String? event]) =>
-      _currentState.transitions?.any(
-          (Transition<T> t) => t.canExecute(event: event, context: context)) ??
-      false;
+  Transition findTransition([String? event]) =>
+      currentState.transitions.firstWhere(
+          (Transition t) => t.canExecute(event: event, context: context));
 
-  Transition<T> findTransition([String? event]) =>
-      _currentState?.transitions?.firstWhere(
-          (Transition<T> t) => t.canExecute(event: event, context: context));
+  bool hasTransition([String? event]) => currentState.transitions
+      .any((Transition t) => t.canExecute(event: event, context: context));
+}
+
+class ExecutionNode<T> {
+  final StateMachine stateMachine;
+
+  final T? context;
+
+  // Iterable<ExecutionNode<T>> get children;
+
+  var _currentState;
+  ExecutionNode(this.stateMachine, this.context);
+
+  State get currentState => _currentState;
+
+  void enterInitialState() {
+    _currentState = stateMachine.initialState;
+    stateMachine.enter(context);
+    _currentState.enter(context);
+  }
+
+  void executeTransition(Transition transition) =>
+      _currentState = stateMachine.findState(transition.targetId);
 }

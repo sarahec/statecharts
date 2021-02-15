@@ -30,12 +30,12 @@ void main() {
   final transitionOn = Transition<Lightbulb>('on',
       condition: (b) => b.cycleCount < 10, event: turnOn);
   final transitionOff = const Transition<Lightbulb>('off', event: turnOff);
-  final stateOff = State('off',
+  final stateOff = State<Lightbulb>('off',
       isInitial: true,
       transitions: [transitionOn],
       onEntry: (b) => b.isOn = false,
       onExit: (b) => b.wasOn = false);
-  final stateOn = State('on',
+  final stateOn = State<Lightbulb>('on',
       transitions: [transitionOff],
       onEntry: (b) => b.isOn = true,
       onExit: (b) {
@@ -81,8 +81,6 @@ void main() {
     });
 
     test('initial state', () {
-      // Don't try to access the current state before calling `enterInitialState`
-      engine.enterInitialState();
       expect(engine.currentState, equals(stateOff));
     });
 
