@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 import '../statecharts.dart';
-import 'state.dart';
+import 'statechart.dart';
 
 class Engine<T> {
   final StateMachine<T> container;
