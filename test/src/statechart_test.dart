@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import 'package:statecharts/statecharts.dart';
 import 'package:test/test.dart';
 
 import 'common/lightswitch.dart';

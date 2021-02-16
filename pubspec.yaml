@@ -27,8 +27,8 @@ dependencies:
   quiver: ^3.0.0-nullsafety.2
 
 dev_dependencies:
+  build_runner: ^1.11.1
   test: ^1.16.0-nullsafety.13
-  mockito: ^5.0.0-nullsafety.5
 
 # Resolve dependency conflict in coverage (used by test)
 dependency_overrides:

@@ -26,12 +26,11 @@ void main() {
     engine = Engine(lightswitch, bulb);
   });
 
-  test('initial state', () {
+  test('selects initial state', () {
     expect(engine.currentState, equals(stateOff));
   });
 
-  test('switches states', () {
-    engine.enterInitialState();
+  test('executes transitions', () {
     expect(engine.currentState.id, equals('off'));
     engine.execute(turnOn);
     expect(engine.currentState.id, equals('on'));
@@ -40,7 +39,6 @@ void main() {
   });
 
   test('calls onEntry', () {
-    engine.enterInitialState();
     expect(bulb.isOn, isFalse);
     engine.execute(turnOn);
     expect(bulb.isOn, isTrue);
@@ -48,8 +46,14 @@ void main() {
     expect(bulb.isOn, isFalse);
   });
 
+  test('calls onExit', () {
+    expect(bulb.wasOn, isNull);
+    engine.execute(turnOn);
+    expect(bulb.isOn, isTrue);
+    expect(bulb.wasOn, isFalse);
+  });
+
   test('tests entry condition in transition', () {
-    engine.enterInitialState();
     for (var i = 0; i < 15; i++) {
       engine.execute(turnOn);
       engine.execute(turnOff);

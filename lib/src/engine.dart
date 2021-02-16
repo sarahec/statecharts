@@ -23,15 +23,10 @@ class Engine<T> {
 
   final ExecutionNode<T> rootNode;
 
-  factory Engine(StateMachine<T> machine, [T? context]) =>
-      Engine._(machine, context)..enterInitialState();
-
-  Engine._(this.container, this.context)
-      : rootNode = ExecutionNode(container, context);
+  Engine(this.container, [this.context])
+      : rootNode = ExecutionNode(container, context)..enterInitialState();
 
   State get currentState => rootNode.currentState;
-
-  void enterInitialState() => rootNode.enterInitialState();
 
   void execute(String event) {
     if (hasTransition(event)) {
