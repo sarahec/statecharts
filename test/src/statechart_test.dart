@@ -1,3 +1,4 @@
+import 'package:statecharts/src/statechart.dart';
 /**
  * Copyright 2021 Google LLC
  *
@@ -18,6 +19,7 @@ import 'package:test/test.dart';
 import 'common/lightswitch.dart';
 
 void main() {
+  group('no substates', () {
     test('initial state',
         () => expect(lightswitch.initialState.id, equals('off')));
 
@@ -36,4 +38,10 @@ void main() {
       expect(lightswitch.initialState.transitionFor(event: turnOn),
           equals(transitionOn));
     });
+
+    test('single state == initial state', () {
+      final singularity = Statechart('singularity', [State('one')]);
+      expect(singularity.initialState.id, equals('one'));
+    });
+  });
 }

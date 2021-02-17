@@ -73,7 +73,8 @@ class Statechart<T> extends StateNode<T> {
   final Iterable<State<T>> states;
 
   const Statechart(id, this.states, {onEntry, onExit})
-      : super(id, onEntry: onEntry, onExit: onExit);
+      : assert(states.length > 0, 'at least one state required'),
+        super(id, onEntry: onEntry, onExit: onExit);
 
   @override
   Set<String> get events {
@@ -85,7 +86,8 @@ class Statechart<T> extends StateNode<T> {
     return result;
   }
 
-  State<T> get initialState => states.firstWhere((s) => s.isInitial);
+  State<T> get initialState =>
+      states.length == 1 ? states.first : states.firstWhere((s) => s.isInitial);
 
   @visibleForTesting
   Set<String> get paths => {for (var event in events) '$id.$event'};
