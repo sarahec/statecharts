@@ -41,7 +41,7 @@ final stateOn = State<Lightbulb>('on',
       b.wasOn = true;
       b.cycleCount += 1;
     });
-final lightswitch = StateMachine<Lightbulb>(
+final lightswitch = Statechart<Lightbulb>(
   'lightswitch',
   [
     stateOff,

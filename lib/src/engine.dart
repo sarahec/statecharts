@@ -17,7 +17,7 @@ import '../statecharts.dart';
 import 'statechart.dart';
 
 class Engine<T> {
-  final StateMachine<T> container;
+  final Statechart<T> container;
 
   final T? context;
 
@@ -51,7 +51,7 @@ class Engine<T> {
 }
 
 class ExecutionNode<T> {
-  final StateMachine stateMachine;
+  final Statechart stateMachine;
 
   final T? context;
 

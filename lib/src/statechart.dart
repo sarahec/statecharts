@@ -28,14 +28,14 @@ typedef Condition<T> = bool Function(T context);
 class State<T> extends StateNode<T> {
   final bool isInitial;
   final List<Transition<T>> transitions;
-  final Iterable<StateMachine> substates;
+  final Iterable<Statechart> substates;
 
   const State(id,
       {transitions = const <Transition>[],
       onEntry,
       onExit,
       this.isInitial = false,
-      substates = const <StateMachine>[]})
+      substates = const <Statechart>[]})
       : transitions = transitions,
         substates = substates,
         super(id, onEntry: onEntry, onExit: onExit);
@@ -69,10 +69,10 @@ class State<T> extends StateNode<T> {
       transitions.firstWhere((t) => t.event == event);
 }
 
-class StateMachine<T> extends StateNode<T> {
+class Statechart<T> extends StateNode<T> {
   final Iterable<State<T>> states;
 
-  const StateMachine(id, this.states, {onEntry, onExit})
+  const Statechart(id, this.states, {onEntry, onExit})
       : super(id, onEntry: onEntry, onExit: onExit);
 
   @override
@@ -95,7 +95,7 @@ class StateMachine<T> extends StateNode<T> {
   bool hasState(String id) => states.any((s) => s.id == id);
 }
 
-/// Common class for the states in a state machine or statechart
+/// Common elements for states and state charts
 abstract class StateNode<T> {
   /// Unique identifier within its container
   final String id;
