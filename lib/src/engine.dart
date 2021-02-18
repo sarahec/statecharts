@@ -13,8 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import '../statecharts.dart';
-import 'statechart.dart';
+import 'package:statecharts/statecharts.dart';
 
 class Engine<T> {
   final Statechart<T> container;
@@ -44,10 +43,10 @@ class Engine<T> {
 
   Transition findTransition([String? event]) =>
       currentState.transitions.firstWhere(
-          (Transition t) => t.canExecute(event: event, context: context));
+          (Transition t) => t.matches(event: event, context: context));
 
   bool hasTransition([String? event]) => currentState.transitions
-      .any((Transition t) => t.canExecute(event: event, context: context));
+      .any((Transition t) => t.matches(event: event, context: context));
 }
 
 class ExecutionNode<T> {

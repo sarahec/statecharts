@@ -13,36 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import 'package:statecharts/statecharts.dart';
+
 import 'package:meta/meta.dart';
 import 'package:quiver/collection.dart';
 import 'package:quiver/core.dart';
 
 // final _log = Logger('statecharts/State');
 
-/// Used for entry and exit actions (in and out of a state or container)
-typedef Action<T> = void Function(T context);
-
-/// Used in determing whether or not to take a transition
-typedef Condition<T> = bool Function(T context);
-
 class State<T> extends StateNode<T> {
   final bool isInitial;
   final List<Transition<T>> transitions;
-  final Iterable<Statechart> substates;
+  final Iterable<State> substates;
 
   const State(id,
       {transitions = const <Transition>[],
       onEntry,
       onExit,
       this.isInitial = false,
-      substates = const <Statechart>[]})
+      substates = const <State>[]})
       : transitions = transitions,
         substates = substates,
         super(id, onEntry: onEntry, onExit: onExit);
 
   @override
   Set<String> get events =>
-      {for (var t in transitions.where((t) => t.event != null)) t.event!};
+      {for (var t in transitions.where((t) => t is Transition)) t.event};
 
   @override
   int get hashCode =>
@@ -119,20 +115,4 @@ abstract class StateNode<T> {
   void exit(T? context) {
     if (onExit != null && context != null) onExit!(context);
   }
-}
-
-class Transition<T> {
-  final Condition<T>? condition;
-  final String? event;
-  final String targetId;
-
-  const Transition(this.targetId, {this.event, this.condition})
-      : assert(event != null || condition != null);
-
-  bool canExecute({String? event, T? context}) => this.event == null
-      ? meetsCondition(context)
-      : this.event == event && meetsCondition(context);
-
-  bool meetsCondition(T? context) =>
-      condition == null || (context != null && condition!(context));
 }

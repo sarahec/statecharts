@@ -13,9 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-library statecharts;
 
-export 'src/engine.dart';
-export 'src/statechart.dart';
-export 'src/transition.dart';
-export 'src/typedefs.dart';
+/// Used for entry and exit actions (in and out of a state or container)
+typedef Action<T> = void Function(T context);
+
+/// Used in determing whether or not to take a transition
+typedef Condition<T> = bool Function(T context);
+

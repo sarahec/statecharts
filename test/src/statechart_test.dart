@@ -1,4 +1,3 @@
-import 'package:statecharts/src/statechart.dart';
 /**
  * Copyright 2021 Google LLC
  *
@@ -14,14 +13,24 @@ import 'package:statecharts/src/statechart.dart';
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import 'package:statecharts/src/statechart.dart';
+import 'package:statecharts/statecharts.dart';
 import 'package:test/test.dart';
 
 import 'common/lightswitch.dart';
 
 void main() {
   group('no substates', () {
-    test('initial state',
+    test('explicit initial state',
         () => expect(lightswitch.initialState.id, equals('off')));
+
+    test('implicit initial state', () {
+      final singularity = Statechart('singularity', [State('one')]);
+      expect(singularity.initialState.id, equals('one'));
+    });
+
+    test('all atomic',
+        () => expect(lightswitch.states.every((s) => s.isAtomic), isTrue));
 
     test('events',
         () => expect(lightswitch.events, containsAll([turnOn, turnOff])));
@@ -38,10 +47,15 @@ void main() {
       expect(lightswitch.initialState.transitionFor(event: turnOn),
           equals(transitionOn));
     });
+  });
 
-    test('single state == initial state', () {
-      final singularity = Statechart('singularity', [State('one')]);
-      expect(singularity.initialState.id, equals('one'));
-    });
+  group('single-transition composite', () {
+    // Example from https://statecharts.github.io/what-is-a-statechart.html
+    final composite = Statechart<dynamic>('D', [
+      State('E', isInitial: true, substates: [
+        State('G', transitions: [Transition('G', event: 'flick')])
+      ]),
+      State('F')
+    ]);
   });
 }
