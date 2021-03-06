@@ -49,3 +49,16 @@ final lightswitch = Statechart<Lightbulb>(
   ],
   onEntry: (bulb) => bulb.masterSwitch = true,
 );
+
+/// First example from https://statecharts.github.io/what-is-a-statechart.html
+
+final basic_composite = Statechart<dynamic>('D', [
+  State('E', isInitial: true, substates: [
+    State('G', transitions: [
+      Transition('G', event: 'flick'),
+      NonEventTransition('F', after: Duration(milliseconds: 500))
+    ])
+  ]),
+  State('F')
+]);
+

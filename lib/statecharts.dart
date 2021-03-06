@@ -16,6 +16,8 @@
 library statecharts;
 
 export 'src/engine.dart';
+export 'src/state.dart';
 export 'src/statechart.dart';
+export 'src/state_node.dart';
 export 'src/transition.dart';
 export 'src/typedefs.dart';

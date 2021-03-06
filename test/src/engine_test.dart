@@ -19,45 +19,68 @@ import 'package:test/test.dart';
 import 'common/lightswitch.dart';
 
 void main() {
-  var engine;
-  var bulb;
-  setUp(() {
-    bulb = Lightbulb();
-    engine = Engine(lightswitch, bulb);
+  group('state machine', () {
+    Engine? engine;
+    Lightbulb? bulb;
+
+    setUp(() {
+      bulb = Lightbulb();
+      engine = Engine(lightswitch, bulb);
+    });
+
+    test('selects initial state', () {
+      expect(engine!.activeStates.first, equals(stateOff));
+    });
+
+    test('executes transitions', () {
+      expect(engine!.currentState.id, equals('off'));
+      engine!.execute(anEvent: turnOn);
+      expect(engine!.currentState.id, equals('on'));
+      engine!.execute(anEvent: turnOff);
+      expect(engine!.currentState.id, equals('off'));
+    });
+
+    test('calls onEntry', () {
+      expect(bulb!.isOn, isFalse);
+      engine!.execute(anEvent: turnOn);
+      expect(bulb!.isOn, isTrue);
+      engine!.execute(anEvent: turnOff);
+      expect(bulb!.isOn, isFalse);
+    });
+
+    test('calls onExit', () {
+      expect(bulb!.wasOn, isNull);
+      engine!.execute(anEvent: turnOn);
+      expect(bulb!.isOn, isTrue);
+      expect(bulb!.wasOn, isFalse);
+    });
+
+    test('tests entry condition in transition', () {
+      for (var i = 0; i < 15; i++) {
+        engine!.execute(anEvent: turnOn);
+        engine!.execute(anEvent: turnOff);
+      }
+      expect(engine!.context?.cycleCount, equals(10));
+    });
   });
 
-  test('selects initial state', () {
-    expect(engine.currentState, equals(stateOff));
-  });
+  // group('basic statechart', () {
+  //   Engine? engine;
 
-  test('executes transitions', () {
-    expect(engine.currentState.id, equals('off'));
-    engine.execute(turnOn);
-    expect(engine.currentState.id, equals('on'));
-    engine.execute(turnOff);
-    expect(engine.currentState.id, equals('off'));
-  });
+  //   setUp(() {
+  //     engine = Engine(basic_composite);
+  //   });
 
-  test('calls onEntry', () {
-    expect(bulb.isOn, isFalse);
-    engine.execute(turnOn);
-    expect(bulb.isOn, isTrue);
-    engine.execute(turnOff);
-    expect(bulb.isOn, isFalse);
-  });
+  //   test('selects initial state', () {
+  //     expect(engine!.activeStates, contains(['D']));
+  //   });
 
-  test('calls onExit', () {
-    expect(bulb.wasOn, isNull);
-    engine.execute(turnOn);
-    expect(bulb.isOn, isTrue);
-    expect(bulb.wasOn, isFalse);
-  });
-
-  test('tests entry condition in transition', () {
-    for (var i = 0; i < 15; i++) {
-      engine.execute(turnOn);
-      engine.execute(turnOff);
-    }
-    expect(engine.context?.cycleCount, equals(10));
-  });
+  //   // test('executes transitions', () {
+  //   //   expect(engine.currentState.id, equals('off'));
+  //   //   engine.execute(turnOn);
+  //   //   expect(engine.currentState.id, equals('on'));
+  //   //   engine.execute(turnOff);
+  //   //   expect(engine.currentState.id, equals('off'));
+  //   // });
+  // });
 }

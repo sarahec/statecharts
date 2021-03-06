@@ -23,13 +23,16 @@ class Engine<T> {
   final ExecutionNode<T> rootNode;
 
   Engine(this.container, [this.context])
-      : rootNode = ExecutionNode(container, context)..enterInitialState();
+      : rootNode = ExecutionNode(container)..enterInitialState(context);
+
+  Iterable<State> get activeStates => [rootNode.currentState];
 
   State get currentState => rootNode.currentState;
 
-  void execute(String event) {
-    if (hasTransition(event)) {
-      final transition = findTransition(event);
+  void execute({String? anEvent, Duration? elapsedTime}) {
+    if (rootNode.hasTransition(event: anEvent, elapsedTime: elapsedTime)) {
+      final transition =
+          rootNode.findTransition(event: anEvent, elapsedTime: elapsedTime);
       executeTransition(transition);
     }
   }
@@ -40,33 +43,30 @@ class Engine<T> {
     rootNode.executeTransition(transition);
     rootNode.currentState.enter(context);
   }
-
-  Transition findTransition([String? event]) =>
-      currentState.transitions.firstWhere(
-          (Transition t) => t.matches(event: event, context: context));
-
-  bool hasTransition([String? event]) => currentState.transitions
-      .any((Transition t) => t.matches(event: event, context: context));
 }
 
 class ExecutionNode<T> {
-  final Statechart stateMachine;
-
-  final T? context;
-
-  // Iterable<ExecutionNode<T>> get children;
+  final Statechart container;
 
   var _currentState;
-  ExecutionNode(this.stateMachine, this.context);
+  ExecutionNode(this.container);
 
   State get currentState => _currentState;
 
-  void enterInitialState() {
-    _currentState = stateMachine.initialState;
-    stateMachine.enter(context);
+  void enterInitialState(T? context) {
+    _currentState = container.initialState;
+    container.enter(context);
     _currentState.enter(context);
   }
 
   void executeTransition(Transition transition) =>
-      _currentState = stateMachine.findState(transition.targetId);
+      _currentState = container.stateNamed(transition.targetId);
+
+  Transition findTransition({String? event, Duration? elapsedTime}) =>
+      currentState.transitions.firstWhere((Transition t) =>
+          t.matches(anEvent: event, elapsedTime: elapsedTime));
+
+  bool hasTransition({String? event, Duration? elapsedTime}) =>
+      currentState.transitions.any((Transition t) =>
+          t.matches(anEvent: event, elapsedTime: elapsedTime));
 }

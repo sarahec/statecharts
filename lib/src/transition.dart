@@ -34,8 +34,13 @@ class Transition<T> extends TransitionBase<T> {
   const Transition(targetId, {required this.event, Condition<T>? condition})
       : super(targetId, condition);
 
-  bool matches({String? event, Duration? elapsedTime, T? context}) =>
-      this.event == event! && meetsCondition(context);
+  bool matches({String? anEvent, Duration? elapsedTime, T? context}) {
+    // using compareTo instead of == as null safety appears to break == between
+    // String? and String
+    return anEvent != null &&
+        event.compareTo(anEvent) == 0 &&
+        meetsCondition(context);
+  }
 }
 
 abstract class TransitionBase<T> {
