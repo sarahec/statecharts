@@ -29,23 +29,20 @@ void main() {
     });
 
     test('selects initial state', () {
-      expect(engine!.activeStates.first, equals(stateOff));
+      expect(engine?.activeStates, containsAll([stateOff]));
     });
 
-    test('executes transitions', () {
-      expect(engine!.currentState.id, equals('off'));
+    test("executes 'on' transition", () {
       engine!.execute(anEvent: turnOn);
-      expect(engine!.currentState.id, equals('on'));
-      engine!.execute(anEvent: turnOff);
-      expect(engine!.currentState.id, equals('off'));
+      expect(engine?.activeStates, containsAll([stateOn]));
     });
 
     test('calls onEntry', () {
-      expect(bulb!.isOn, isFalse);
+      expect(bulb?.isOn, isFalse);
       engine!.execute(anEvent: turnOn);
-      expect(bulb!.isOn, isTrue);
+      expect(bulb?.isOn, isTrue);
       engine!.execute(anEvent: turnOff);
-      expect(bulb!.isOn, isFalse);
+      expect(bulb?.isOn, isFalse);
     });
 
     test('calls onExit', () {
@@ -56,7 +53,7 @@ void main() {
     });
 
     test('tests entry condition in transition', () {
-      for (var i = 0; i < 15; i++) {
+      for (var i = 0; i < 10; i++) {
         engine!.execute(anEvent: turnOn);
         engine!.execute(anEvent: turnOff);
       }

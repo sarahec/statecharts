@@ -58,10 +58,8 @@ class State<T> extends StateNode<T> {
       listsEqual(substates, other.substates) &&
       isInitial == other.isInitial;
 
-  @visibleForTesting
   bool hasTransitionFor({required String event}) => events.contains(event);
 
-  @visibleForTesting
   Transition<T>? transitionFor({required String event}) => transitions
       .firstWhere((t) => t.event == event, orElse: () => null as dynamic);
 }

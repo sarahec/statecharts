@@ -41,9 +41,12 @@ class Statechart<T> extends StateNode<T> {
   @visibleForTesting
   Set<String> get paths => {for (var event in events) '$id.$event'};
 
-  State<T>? stateNamed(String id) => states.firstWhere((s) => s.id == id,
-      orElse: () =>
-          null as dynamic); // cast away return_of_invalid_type_from_closure
+  State<T> findState({required String id, bool inChildren = false}) =>
+      states.firstWhere(
+          (s) => s.id == id); // cast away return_of_invalid_type_from_closure
 
   bool hasStateNamed(String id) => states.any((s) => s.id == id);
+
+  State<T>? stateNamed(String id) =>
+      states.firstWhere((s) => s.id == id, orElse: () => null as dynamic);
 }

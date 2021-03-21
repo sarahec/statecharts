@@ -18,7 +18,7 @@ import 'package:statecharts/statecharts.dart';
 
 class Lightbulb {
   int cycleCount = 0;
-  bool? isOn;
+  bool isOn = false;
   bool? wasOn;
   bool masterSwitch = false;
 }
@@ -61,4 +61,3 @@ final basic_composite = Statechart<dynamic>('D', [
   ]),
   State('F')
 ]);
-

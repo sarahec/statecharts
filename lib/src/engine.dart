@@ -17,56 +17,32 @@ import 'package:statecharts/statecharts.dart';
 
 class Engine<T> {
   final Statechart<T> container;
-
   final T? context;
 
-  final ExecutionNode<T> rootNode;
+  Iterable<State> get activeStates => _activeStates;
 
-  Engine(this.container, [this.context])
-      : rootNode = ExecutionNode(container)..enterInitialState(context);
+  var _activeStates = <State>[];
 
-  Iterable<State> get activeStates => [rootNode.currentState];
+  factory Engine(Statechart<T> container, [T? context]) =>
+      Engine._(container, context, [container.initialState]);
 
-  State get currentState => rootNode.currentState;
-
-  void execute({String? anEvent, Duration? elapsedTime}) {
-    if (rootNode.hasTransition(event: anEvent, elapsedTime: elapsedTime)) {
-      final transition =
-          rootNode.findTransition(event: anEvent, elapsedTime: elapsedTime);
-      executeTransition(transition);
+  bool execute({String? anEvent, Duration? elapsedTime}) {
+    assert(_activeStates.isNotEmpty);
+    // Get the available transitions
+    final startingState = _activeStates.first;
+    final transition = startingState.transitionFor(event: anEvent!);
+    if (transition == null) return false;
+    final endingState =
+        container.findState(id: transition.targetId, inChildren: false);
+    if (endingState.id != startingState.id) {
+      startingState.exit(context);
+      endingState.enter(context);
+      _activeStates[_activeStates.indexOf(startingState)] = endingState;
     }
+    return endingState.id != startingState.id;
   }
 
-  void executeTransition(Transition transition) {
-    if (!transition.meetsCondition(context)) return;
-    rootNode.currentState.exit(context);
-    rootNode.executeTransition(transition);
-    rootNode.currentState.enter(context);
-  }
+  Engine._(this.container, this.context, this._activeStates);
 }
 
-class ExecutionNode<T> {
-  final Statechart container;
-
-  var _currentState;
-  ExecutionNode(this.container);
-
-  State get currentState => _currentState;
-
-  void enterInitialState(T? context) {
-    _currentState = container.initialState;
-    container.enter(context);
-    _currentState.enter(context);
-  }
-
-  void executeTransition(Transition transition) =>
-      _currentState = container.stateNamed(transition.targetId);
-
-  Transition findTransition({String? event, Duration? elapsedTime}) =>
-      currentState.transitions.firstWhere((Transition t) =>
-          t.matches(anEvent: event, elapsedTime: elapsedTime));
-
-  bool hasTransition({String? event, Duration? elapsedTime}) =>
-      currentState.transitions.any((Transition t) =>
-          t.matches(anEvent: event, elapsedTime: elapsedTime));
-}
+class ExecutionState {}
