@@ -25,7 +25,8 @@ class NonEventTransition<T> extends TransitionBase<T> {
         super(targetId, condition);
 
   bool matches({String? event, Duration? elapsedTime, T? context}) =>
-      meetsCondition(context) || (elapsedTime != null && elapsedTime >= after!);
+      (condition != null && meetsCondition(context)) ||
+      (elapsedTime != null && elapsedTime.compareTo(after!) >= 0);
 }
 
 class Transition<T> extends TransitionBase<T> {

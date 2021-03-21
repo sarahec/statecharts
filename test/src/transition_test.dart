@@ -38,4 +38,31 @@ void main() {
     test('doesn\'t match correct event, missing context',
         () => expect(conditionalTransition.matches(anEvent: 'onA'), isFalse));
   });
+
+  group('non-event transition', () {
+    test('matches on condition', () {
+      final conditionalTransition =
+          NonEventTransition<int>('cond', condition: (int c) => c == 0);
+      expect(conditionalTransition.matches(context: 0), isTrue);
+      expect(conditionalTransition.matches(context: 1), isFalse);
+    });
+
+    test('matches on delay', () {
+      final conditionalTransition =
+          NonEventTransition<int>('cond', after: Duration(minutes: 1));
+      expect(conditionalTransition.matches(elapsedTime: Duration(minutes: 1)),
+          isTrue);
+      expect(
+          conditionalTransition.matches(
+              elapsedTime: Duration(milliseconds: 500)),
+          isFalse);
+    });
+
+    test('ignores event on match', () {
+      final conditionalTransition =
+          NonEventTransition<int>('cond', condition: (int c) => c == 0);
+      expect(
+          conditionalTransition.matches(event: 'anything', context: 0), isTrue);
+    });
+  });
 }
