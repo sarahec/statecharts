@@ -53,11 +53,12 @@ void main() {
     });
 
     test('tests entry condition in transition', () {
-      for (var i = 0; i < 10; i++) {
+      final limit = 10;
+      for (var i = 0; i < limit; i++) {
         engine!.execute(anEvent: turnOn);
         engine!.execute(anEvent: turnOff);
       }
-      expect(engine!.context?.cycleCount, equals(10));
+      expect(engine!.context?.cycleCount, equals(limit));
     });
   });
 
