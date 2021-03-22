@@ -30,8 +30,8 @@ class Engine<T> {
     assert(_activeStates.isNotEmpty);
     // Get the available transitions
     final startingState = _activeStates.first;
-    final transition = startingState.transitionFor(event: anEvent!);
-    if (transition == null) return false;
+    final transition =
+        startingState.transitionFor(event: anEvent!, context: context);
     final endingState =
         container.findState(id: transition.targetId, inChildren: false);
     if (endingState.id != startingState.id) {

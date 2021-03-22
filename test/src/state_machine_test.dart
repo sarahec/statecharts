@@ -39,7 +39,9 @@ void main() {
   test('transitions', () {
     expect(lightswitch.initialState.hasTransitionFor(event: turnOn), isTrue);
     expect(lightswitch.initialState.hasTransitionFor(event: turnOff), isFalse);
-    expect(lightswitch.initialState.transitionFor(event: turnOn),
+    expect(
+        lightswitch.initialState
+            .transitionFor(event: turnOn, ignoreContext: true),
         equals(transitionOn));
   });
 }

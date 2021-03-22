@@ -3,7 +3,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('event transition', () {
-    final eventTransition = const Transition<int>('a', event: 'onA');
+    final eventTransition = const EventTransition<int>('a', event: 'onA');
 
     test('matches event',
         () => expect(eventTransition.matches(anEvent: 'onA'), isTrue));
@@ -18,8 +18,8 @@ void main() {
   });
 
   group('event transition + condition', () {
-    final conditionalTransition =
-        Transition<int>('cond', event: 'onA', condition: (int c) => c == 0);
+    final conditionalTransition = EventTransition<int>('cond',
+        event: 'onA', condition: (int c) => c == 0);
 
     test(
         'matches event and condition',
@@ -61,8 +61,8 @@ void main() {
     test('ignores event on match', () {
       final conditionalTransition =
           NonEventTransition<int>('cond', condition: (int c) => c == 0);
-      expect(
-          conditionalTransition.matches(event: 'anything', context: 0), isTrue);
+      expect(conditionalTransition.matches(anEvent: 'anything', context: 0),
+          isTrue);
     });
   });
 }

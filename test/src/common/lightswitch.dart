@@ -26,9 +26,9 @@ class Lightbulb {
 const turnOn = 'turnOn';
 const turnOff = 'turnOff';
 
-final transitionOn = Transition<Lightbulb>('on',
+final transitionOn = EventTransition<Lightbulb>('on',
     condition: (b) => b.cycleCount < 10, event: turnOn);
-final transitionOff = const Transition<Lightbulb>('off', event: turnOff);
+final transitionOff = const EventTransition<Lightbulb>('off', event: turnOff);
 final stateOff = State<Lightbulb>('off',
     isInitial: true,
     transitions: [transitionOn],
@@ -49,15 +49,3 @@ final lightswitch = Statechart<Lightbulb>(
   ],
   onEntry: (bulb) => bulb.masterSwitch = true,
 );
-
-/// First example from https://statecharts.github.io/what-is-a-statechart.html
-
-final basic_composite = Statechart<dynamic>('D', [
-  State('E', isInitial: true, substates: [
-    State('G', transitions: [
-      Transition('G', event: 'flick'),
-      NonEventTransition('F', after: Duration(milliseconds: 500))
-    ])
-  ]),
-  State('F')
-]);

@@ -15,36 +15,65 @@
  */
 import 'dart:core';
 
+import 'package:logging/logging.dart';
 import 'package:statecharts/statecharts.dart';
 
-class NonEventTransition<T> extends TransitionBase<T> {
-  final Duration? after;
+final _log = Logger('transition');
 
-  const NonEventTransition(targetId, {this.after, Condition<T>? condition})
-      : assert(after != null || condition != null),
-        super(targetId, condition);
-
-  bool matches({String? event, Duration? elapsedTime, T? context}) =>
-      (condition != null && meetsCondition(context)) ||
-      (elapsedTime != null && elapsedTime.compareTo(after!) >= 0);
-}
-
-class Transition<T> extends TransitionBase<T> {
+class EventTransition<T> extends TransitionBase<T> implements Transition<T> {
   final String event;
 
-  const Transition(targetId, {required this.event, Condition<T>? condition})
+  const EventTransition(targetId,
+      {required this.event, Condition<T>? condition})
       : super(targetId, condition);
 
-  bool matches({String? anEvent, Duration? elapsedTime, T? context}) {
+  @override
+  bool matches(
+      {String? anEvent,
+      Duration? elapsedTime,
+      T? context,
+      ignoreContext = false}) {
     // using compareTo instead of == as null safety appears to break == between
     // String? and String
-    return anEvent != null &&
+
+    final found = anEvent != null &&
         event.compareTo(anEvent) == 0 &&
-        meetsCondition(context);
+        (ignoreContext || meetsCondition(context));
+    _log.finest(() => 'Matching on event $anEvent: $found');
+    return found;
   }
 }
 
-abstract class TransitionBase<T> {
+class NonEventTransition<T> extends TransitionBase<T> implements Transition<T> {
+  final Duration? after;
+
+  const NonEventTransition(targetId,
+      {this.after, Condition<T>? condition, ignoreContext = false})
+      : assert(after != null || condition != null),
+        super(targetId, condition);
+
+  @override
+  bool matches(
+          {String? anEvent,
+          Duration? elapsedTime,
+          T? context,
+          ignoreContext = false}) =>
+      (!ignoreContext && condition != null && meetsCondition(context)) ||
+      (elapsedTime != null && elapsedTime.compareTo(after!) >= 0);
+}
+
+abstract class Transition<T> {
+  Condition<T>? get condition;
+  String get targetId;
+
+  bool matches(
+      {String? anEvent,
+      Duration? elapsedTime,
+      T? context,
+      ignoreContext = false});
+}
+
+abstract class TransitionBase<T> implements Transition<T> {
   final Condition<T>? condition;
   final String targetId;
 

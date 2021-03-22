@@ -13,11 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import 'package:statecharts/statecharts.dart';
-
 import 'package:meta/meta.dart';
 import 'package:quiver/collection.dart';
 import 'package:quiver/core.dart';
+import 'package:statecharts/statecharts.dart';
 
 // final _log = Logger('State');
 
@@ -38,7 +37,7 @@ class State<T> extends StateNode<T> {
 
   @override
   Set<String> get events =>
-      {for (var t in transitions.whereType<Transition>()) t.event};
+      {for (var t in transitions.whereType<EventTransition>()) t.event};
 
   @override
   int get hashCode =>
@@ -58,8 +57,19 @@ class State<T> extends StateNode<T> {
       listsEqual(substates, other.substates) &&
       isInitial == other.isInitial;
 
-  bool hasTransitionFor({required String event}) => events.contains(event);
+  @visibleForTesting
+  bool hasTransitionFor({String? event, Duration? elapsedTime, T? context}) =>
+      transitions.any((t) => t.matches(
+          anEvent: event, elapsedTime: elapsedTime, ignoreContext: true));
 
-  Transition<T>? transitionFor({required String event}) => transitions
-      .firstWhere((t) => t.event == event, orElse: () => null as dynamic);
+  Transition<T> transitionFor(
+          {String? event,
+          Duration? elapsedTime,
+          T? context,
+          ignoreContext = false}) =>
+      transitions.firstWhere((t) => t.matches(
+          anEvent: event,
+          elapsedTime: elapsedTime,
+          context: context,
+          ignoreContext: ignoreContext));
 }
