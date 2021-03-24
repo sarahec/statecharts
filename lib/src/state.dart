@@ -20,10 +20,10 @@ import 'package:statecharts/statecharts.dart';
 
 // final _log = Logger('State');
 
-class State<T> extends StateNode<T> {
+class State<T> extends StateNode<T> implements StateContainer {
   final bool isInitial;
   final List<Transition<T>> transitions;
-  final List<State> substates;
+  final List<State<T>> substates;
 
   const State(id,
       {transitions = const <Transition>[],
@@ -34,6 +34,9 @@ class State<T> extends StateNode<T> {
       : transitions = transitions,
         substates = substates,
         super(id, onEntry: onEntry, onExit: onExit);
+
+  @override
+  Iterable<State<T>> get children => substates;
 
   @override
   Set<String> get events =>
@@ -72,4 +75,8 @@ class State<T> extends StateNode<T> {
           elapsedTime: elapsedTime,
           context: context,
           ignoreContext: ignoreContext));
+}
+
+abstract class StateContainer<T> {
+  Iterable<State<T>> get children;
 }

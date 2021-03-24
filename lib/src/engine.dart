@@ -47,12 +47,12 @@ class Engine<T> {
 
 class ExecutionState {}
 
-class ContainerState<T> {
-  final Statechart<T> container;
-  final State<T> state;
+class ActiveStateRecord<T> {
+  final StateContainer<T> container;
+  final State<T> activeState;
 
-  ContainerState(this.container, this.state);
+  ActiveStateRecord(this.container, this.activeState);
 
-  ContainerState withNewState(State<T> newState) =>
-      ContainerState<T>(container, newState);
+  ActiveStateRecord withNewState(State<T> newState) =>
+      ActiveStateRecord<T>(container, newState);
 }

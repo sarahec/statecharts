@@ -20,12 +20,15 @@ import 'package:statecharts/statecharts.dart';
 
 // final _log = Logger('Statechart');
 
-class Statechart<T> extends StateNode<T> {
+class Statechart<T> extends StateNode<T> implements StateContainer<T> {
   final Iterable<State<T>> states;
 
   const Statechart(id, this.states, {onEntry, onExit})
       : assert(states.length > 0, 'at least one state required'),
         super(id, onEntry: onEntry, onExit: onExit);
+
+  @override
+  Iterable<State<T>> get children => states;
 
   @override
   Set<String> get events {
