@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 import 'package:meta/meta.dart';
+import 'package:quiver/collection.dart';
+import 'package:quiver/core.dart';
 import 'package:statecharts/statecharts.dart';
 
 // final _log = Logger('Statechart');
@@ -35,11 +37,22 @@ class Statechart<T> extends StateNode<T> {
     return result;
   }
 
+  @override
+  int get hashCode => hash4(states, id, onEntry, onExit);
+
   State<T> get initialState =>
       states.length == 1 ? states.first : states.firstWhere((s) => s.isInitial);
 
   @visibleForTesting
   Set<String> get paths => {for (var event in events) '$id.$event'};
+
+  @override
+  bool operator ==(Object other) =>
+      other is Statechart &&
+      id == other.id &&
+      onEntry == other.onEntry &&
+      onExit == other.onExit &&
+      listsEqual(List.of(states), List.of(other.states));
 
   State<T> findState({required String id, bool inChildren = false}) =>
       states.firstWhere(
