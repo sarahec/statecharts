@@ -15,21 +15,16 @@
 
 name: statecharts
 description: Statechart implementation consistent with Harel notation and the SCXML spec
-# version: 0.9.0
-# homepage: https://github.com/sarahec/instant_xml_parser
+version: 1.0.0
+homepage: https://github.com/sarahec/statecharts
 
 environment:
   sdk: '>=2.12.0-0 <3.0.0'
 
 dependencies:
-  collection: ^1.15.0-nullsafety.5 
-  logging: ^1.0.0-nullsafety.0
-  quiver: ^3.0.0-nullsafety.2
+  collection: ^1.15.0 
+  logging: ^1.0.0
+  quiver: ^3.0.0
 
 dev_dependencies:
-  build_runner: ^1.11.1
-  test: ^1.16.0-nullsafety.13
-
-# Resolve dependency conflict in coverage (used by test)
-dependency_overrides:
-  logging: ^1.0.0-nullsafety.0
+  test: ^1.16.8
