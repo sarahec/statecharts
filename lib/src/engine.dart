@@ -46,3 +46,13 @@ class Engine<T> {
 }
 
 class ExecutionState {}
+
+class ContainerState<T> {
+  final Statechart<T> container;
+  final State<T> state;
+
+  ContainerState(this.container, this.state);
+
+  ContainerState withNewState(State<T> newState) =>
+      ContainerState<T>(container, newState);
+}
