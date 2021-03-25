@@ -62,6 +62,24 @@ class NonEventTransition<T> extends TransitionBase<T> implements Transition<T> {
       (elapsedTime != null && elapsedTime.compareTo(after!) >= 0);
 }
 
+class NullTransition<T> implements Transition<T> {
+  @override
+  final condition = null;
+  @override
+  final targetId;
+
+  NullTransition(this.targetId);
+
+  @override
+  bool matches(
+      {String? anEvent,
+      Duration? elapsedTime,
+      T? context,
+      ignoreContext = false}) {
+    throw UnimplementedError();
+  }
+}
+
 abstract class Transition<T> {
   Condition<T>? get condition;
   String get targetId;

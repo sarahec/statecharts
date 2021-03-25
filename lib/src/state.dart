@@ -70,11 +70,13 @@ class State<T> extends StateNode<T> implements StateContainer {
           Duration? elapsedTime,
           T? context,
           ignoreContext = false}) =>
-      transitions.firstWhere((t) => t.matches(
-          anEvent: event,
-          elapsedTime: elapsedTime,
-          context: context,
-          ignoreContext: ignoreContext));
+      transitions.firstWhere(
+          (t) => t.matches(
+              anEvent: event,
+              elapsedTime: elapsedTime,
+              context: context,
+              ignoreContext: ignoreContext),
+          orElse: () => NullTransition<T>(id));
 }
 
 abstract class StateContainer<T> {
