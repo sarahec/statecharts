@@ -80,5 +80,7 @@ class State<T> extends StateNode<T> implements StateContainer {
 }
 
 abstract class StateContainer<T> {
+  String get id;
+
   Iterable<State<T>> get children;
 }

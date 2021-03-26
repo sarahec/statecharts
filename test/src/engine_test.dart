@@ -62,35 +62,35 @@ void main() {
     });
   });
 
-  group('basic statechart', () {
-    // First example from https://statecharts.github.io/what-is-a-statechart.html
+  // group('basic statechart', () {
+  //   // First example from https://statecharts.github.io/what-is-a-statechart.html
 
-    final basic_composite = Statechart('D', [
-      State('E', isInitial: true, substates: [
-        State('G', transitions: [
-          EventTransition('G', event: 'flick'),
-          NonEventTransition('F', after: Duration(milliseconds: 500))
-        ])
-      ]),
-      State('F')
-    ]);
+  //   final basic_composite = Statechart('D', [
+  //     State('E', isInitial: true, substates: [
+  //       State('G', transitions: [
+  //         EventTransition('G', event: 'flick'),
+  //         NonEventTransition('F', after: Duration(milliseconds: 500))
+  //       ])
+  //     ]),
+  //     State('F')
+  //   ]);
 
-    Engine? engine;
+  //   Engine? engine;
 
-    setUp(() {
-      engine = Engine(basic_composite);
-    });
+  //   setUp(() {
+  //     engine = Engine(basic_composite);
+  //   });
 
-    test('selects initial state', () {
-      expect(engine!.activeStates.first.id, equals('E'));
-    });
+  //   test('selects initial state', () {
+  //     expect(engine!.activeStates.first.id, equals('E'));
+  //   });
 
-    // test('executes transitions', () {
-    //   expect(engine.currentState.id, equals('off'));
-    //   engine.execute(turnOn);
-    //   expect(engine.currentState.id, equals('on'));
-    //   engine.execute(turnOff);
-    //   expect(engine.currentState.id, equals('off'));
-    // });
-  });
+  //   // test('executes transitions', () {
+  //   //   expect(engine.currentState.id, equals('off'));
+  //   //   engine.execute(turnOn);
+  //   //   expect(engine.currentState.id, equals('on'));
+  //   //   engine.execute(turnOff);
+  //   //   expect(engine.currentState.id, equals('off'));
+  //   // });
+  // });
 }

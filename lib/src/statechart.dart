@@ -56,13 +56,4 @@ class Statechart<T> extends StateNode<T> implements StateContainer<T> {
       onEntry == other.onEntry &&
       onExit == other.onExit &&
       listsEqual(List.of(states), List.of(other.states));
-
-  State<T> findState({required String id, bool inChildren = false}) =>
-      states.firstWhere(
-          (s) => s.id == id); // cast away return_of_invalid_type_from_closure
-
-  bool hasStateNamed(String id) => states.any((s) => s.id == id);
-
-  State<T>? stateNamed(String id) =>
-      states.firstWhere((s) => s.id == id, orElse: () => null as dynamic);
 }
