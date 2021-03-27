@@ -15,7 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import 'package:statecharts/src/statechart.dart';
 import 'package:statecharts/statecharts.dart';
 import 'package:test/test.dart';
 
@@ -26,15 +25,12 @@ void main() {
       () => expect(lightswitch.initialState.id, equals('off')));
 
   test('implicit initial state', () {
-    final singularity = Statechart('singularity', [State('one')]);
+    final singularity = State('singularity', substates: [State('one')]);
     expect(singularity.initialState.id, equals('one'));
   });
 
   test('all atomic',
-      () => expect(lightswitch.states.every((s) => s.isAtomic), isTrue));
-
-  test('events',
-      () => expect(lightswitch.events, containsAll([turnOn, turnOff])));
+      () => expect(lightswitch.substates.every((s) => s.isAtomic), isTrue));
 
   test('transitions', () {
     expect(lightswitch.initialState.hasTransitionFor(event: turnOn), isTrue);

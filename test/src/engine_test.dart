@@ -60,7 +60,7 @@ void main() {
       }
       expect(engine!.context?.cycleCount, equals(limit));
     });
-  });
+  }, skip: true);
 
   // group('basic statechart', () {
   //   // First example from https://statecharts.github.io/what-is-a-statechart.html

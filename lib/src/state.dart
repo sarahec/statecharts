@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 /**
  * Copyright 2021 Google LLC
  *
@@ -20,35 +21,55 @@ import 'package:statecharts/statecharts.dart';
 
 // final _log = Logger('State');
 
-class State<T> extends StateNode<T> implements StateContainer {
-  final bool isInitial;
-  final List<Transition<T>> transitions;
-  final List<State<T>> substates;
+class State<T> {
+  /// Unique identifier within its container
+  final String id;
 
-  const State(id,
-      {transitions = const <Transition>[],
+  /// Declares this to be an initial state
+  final bool isInitial;
+
+  /// Declares this to be a final state
+  final bool isFinal;
+
+  final Iterable<State<T>> substates;
+  final Iterable<Transition<T>> transitions;
+
+  /// Action to be performed when this state or container is entered
+  final Action<T>? onEntry;
+
+  /// Action to be performed when this state or container is exited
+  final Action<T>? onExit;
+
+  /// Used to find the containing state (when this is a substate)
+  late final State<T>? container;
+
+  factory State(id,
+      {Iterable<Transition<T>> transitions = const [],
       onEntry,
       onExit,
-      this.isInitial = false,
-      substates = const <State>[]})
-      : transitions = transitions,
-        substates = substates,
-        super(id, onEntry: onEntry, onExit: onExit);
+      isInitial = false,
+      isFinal = false,
+      Iterable<State<T>> substates = const []}) {
+    final s = State<T>._(
+        id, transitions, onEntry, onExit, isInitial, isFinal, substates);
+    for (var probe in s.substates) {
+      probe.container = s;
+    }
+    return s;
+  }
+
+  State._(this.id, this.transitions, this.onEntry, this.onExit, this.isInitial,
+      this.isFinal, this.substates);
 
   @override
-  Iterable<State<T>> get children => substates;
-
-  @override
-  Set<String> get events =>
-      {for (var t in transitions.whereType<EventTransition>()) t.event};
-
-  @override
-  int get hashCode =>
-      hashObjects([id, onEntry, onExit, transitions, isInitial, isTerminal]);
+  int get hashCode => hashObjects(
+      [id, container, onEntry, onExit, transitions, isInitial, isFinal]);
 
   bool get isAtomic => substates.isEmpty;
 
-  bool get isTerminal => transitions.isEmpty;
+  State<T> get initialState => isInitial
+      ? this
+      : substates.firstWhere((s) => s.isInitial, orElse: () => substates.first);
 
   @override
   bool operator ==(Object other) =>
@@ -56,9 +77,18 @@ class State<T> extends StateNode<T> implements StateContainer {
       id == other.id &&
       onEntry == other.onEntry &&
       onExit == other.onExit &&
-      listsEqual(transitions, other.transitions) &&
-      listsEqual(substates, other.substates) &&
+      container == other.container &&
+      IterableEquality().equals(transitions, other.transitions) &&
+      IterableEquality().equals(substates, other.substates) &&
       isInitial == other.isInitial;
+
+  void enter(T? context) {
+    if (onEntry != null && context != null) onEntry!(context);
+  }
+
+  void exit(T? context) {
+    if (onExit != null && context != null) onExit!(context);
+  }
 
   @visibleForTesting
   bool hasTransitionFor({String? event, Duration? elapsedTime, T? context}) =>
@@ -77,10 +107,4 @@ class State<T> extends StateNode<T> implements StateContainer {
               context: context,
               ignoreContext: ignoreContext),
           orElse: () => NullTransition<T>(id));
-}
-
-abstract class StateContainer<T> {
-  String get id;
-
-  Iterable<State<T>> get children;
 }
