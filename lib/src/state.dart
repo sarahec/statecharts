@@ -1,4 +1,3 @@
-import 'package:collection/collection.dart';
 /**
  * Copyright 2021 Google LLC
  *
@@ -14,8 +13,7 @@ import 'package:collection/collection.dart';
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import 'package:meta/meta.dart';
-import 'package:quiver/collection.dart';
+import 'package:collection/collection.dart';
 import 'package:quiver/core.dart';
 import 'package:statecharts/statecharts.dart';
 
@@ -23,7 +21,7 @@ import 'package:statecharts/statecharts.dart';
 
 class State<T> {
   /// Unique identifier within its container
-  final String id;
+  final String? id;
 
   /// Declares this to be an initial state
   final bool isInitial;
@@ -65,11 +63,11 @@ class State<T> {
   int get hashCode => hashObjects(
       [id, container, onEntry, onExit, transitions, isInitial, isFinal]);
 
-  bool get isAtomic => substates.isEmpty;
-
   State<T> get initialState => isInitial
       ? this
       : substates.firstWhere((s) => s.isInitial, orElse: () => substates.first);
+
+  bool get isAtomic => substates.isEmpty;
 
   @override
   bool operator ==(Object other) =>
@@ -90,21 +88,14 @@ class State<T> {
     if (onExit != null && context != null) onExit!(context);
   }
 
-  @visibleForTesting
-  bool hasTransitionFor({String? event, Duration? elapsedTime, T? context}) =>
-      transitions.any((t) => t.matches(
-          anEvent: event, elapsedTime: elapsedTime, ignoreContext: true));
-
-  Transition<T> transitionFor(
+  Transition<T>? transitionFor(
           {String? event,
           Duration? elapsedTime,
           T? context,
           ignoreContext = false}) =>
-      transitions.firstWhere(
-          (t) => t.matches(
-              anEvent: event,
-              elapsedTime: elapsedTime,
-              context: context,
-              ignoreContext: ignoreContext),
-          orElse: () => NullTransition<T>(id));
+      transitions.firstWhereOrNull((t) => t.matches(
+          anEvent: event,
+          elapsedTime: elapsedTime,
+          context: context,
+          ignoreContext: ignoreContext));
 }

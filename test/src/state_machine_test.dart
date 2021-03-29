@@ -33,8 +33,15 @@ void main() {
       () => expect(lightswitch.substates.every((s) => s.isAtomic), isTrue));
 
   test('transitions', () {
-    expect(lightswitch.initialState.hasTransitionFor(event: turnOn), isTrue);
-    expect(lightswitch.initialState.hasTransitionFor(event: turnOff), isFalse);
+    expect(
+        lightswitch.initialState
+            .transitionFor(event: turnOn, ignoreContext: true),
+        isNotNull);
+    expect(
+        lightswitch.initialState.transitionFor(
+            event: turnOff,
+            ignoreContext: true), // ignore the counter test condition
+        isNull);
     expect(
         lightswitch.initialState
             .transitionFor(event: turnOn, ignoreContext: true),

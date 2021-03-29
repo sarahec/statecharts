@@ -13,20 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import 'package:statecharts/statecharts.dart';
 import 'package:meta/meta.dart';
+import 'package:statecharts/statecharts.dart';
 
 class Engine<T> {
-  final State<T> statechart;
+  final State<T> rootState;
   final T? context;
 
   var _activeStates;
 
-  final Map<String, State<T>> _nodesByID;
-
-  Engine(this.statechart, [this.context])
-      : _nodesByID = {for (var s in statechart.flatten) s.id: s},
-        _activeStates = statechart.initialStates;
+  Engine(this.rootState, [this.context])
+      : _activeStates = rootState.initialStates;
 
   Iterable<State<T>> get activeStates => _activeStates;
 

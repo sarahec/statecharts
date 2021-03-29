@@ -19,8 +19,6 @@ import 'package:statecharts/statecharts.dart';
 class Lightbulb {
   int cycleCount = 0;
   bool isOn = false;
-  bool? wasOn;
-  bool masterSwitch = false;
 }
 
 const turnOn = 'turnOn';
@@ -41,11 +39,29 @@ final stateOn = State<Lightbulb>('on',
       b.wasOn = true;
       b.cycleCount += 1;
     });
+
 final lightswitch = State<Lightbulb>(
   'lightswitch',
   substates: [
     stateOff,
     stateOn,
   ],
-  onEntry: (bulb) => bulb.masterSwitch = true,
 );
+
+final countedLightswitch = State<Lightbulb>('lightswitch2', substates: [
+  State<Lightbulb>('off',
+      isInitial: true,
+      transitions: [
+        EventTransition<Lightbulb>('on',
+            event: turnOn, condition: (b) => b.cycleCount < 10),
+      ],
+      onEntry: (b) => b.isOn = false),
+  State<Lightbulb>('on',
+      transitions: [
+        EventTransition<Lightbulb>('off', event: turnOff),
+      ],
+      onEntry: (b) => b.isOn = true,
+      onExit: (b) {
+        b.cycleCount += 1;
+      }),
+]);

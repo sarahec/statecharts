@@ -20,7 +20,7 @@ import 'package:statecharts/statecharts.dart';
 
 final _log = Logger('transition');
 
-class EventTransition<T> extends TransitionBase<T> implements Transition<T> {
+class EventTransition<T> extends Transition<T> {
   final String event;
 
   const EventTransition(targetId,
@@ -44,7 +44,7 @@ class EventTransition<T> extends TransitionBase<T> implements Transition<T> {
   }
 }
 
-class NonEventTransition<T> extends TransitionBase<T> implements Transition<T> {
+class NonEventTransition<T> extends Transition<T> {
   final Duration? after;
 
   const NonEventTransition(targetId,
@@ -62,40 +62,17 @@ class NonEventTransition<T> extends TransitionBase<T> implements Transition<T> {
       (elapsedTime != null && elapsedTime.compareTo(after!) >= 0);
 }
 
-class NullTransition<T> implements Transition<T> {
-  @override
-  final condition = null;
-  @override
-  final targetId;
-
-  NullTransition(this.targetId);
-
-  @override
-  bool matches(
-      {String? anEvent,
-      Duration? elapsedTime,
-      T? context,
-      ignoreContext = false}) {
-    throw UnimplementedError();
-  }
-}
-
 abstract class Transition<T> {
-  Condition<T>? get condition;
-  String get targetId;
+  final Condition<T>? condition;
+  final String targetId;
+
+  const Transition(this.targetId, this.condition);
 
   bool matches(
       {String? anEvent,
       Duration? elapsedTime,
       T? context,
       ignoreContext = false});
-}
-
-abstract class TransitionBase<T> implements Transition<T> {
-  final Condition<T>? condition;
-  final String targetId;
-
-  const TransitionBase(this.targetId, this.condition);
 
   bool meetsCondition(T? context) =>
       condition == null || (context != null && condition!(context));
