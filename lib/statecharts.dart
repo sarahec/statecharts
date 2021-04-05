@@ -15,8 +15,8 @@
  */
 library statecharts;
 
-export 'src/engine.dart';
-export 'src/state.dart';
-export 'src/state_extensions.dart';
-export 'src/transition.dart';
-export 'src/typedefs.dart';
+export 'src/engine/engine.dart';
+export 'src/statechart/state.dart';
+export 'src/engine/state_extensions.dart';
+export 'src/statechart/transition.dart';
+export 'src/statechart/typedefs.dart';
