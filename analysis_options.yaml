@@ -20,10 +20,10 @@ include: package:pedantic/analysis_options.yaml
 # For lint rules and documentation, see http://dart-lang.github.io/linter/lints.
 # Uncomment to specify additional rules.
 
-# linter:
-#   rules:
-#     # Don't let block copyight trigger the linter
-#     slash_for_doc_comments: false
+linter:
+  rules:
+    # Don't let block copyight trigger the linter
+    slash_for_doc_comments: false
 
 # analyzer:
 #  enable-experiment:
