@@ -61,14 +61,6 @@ class State<T> {
     yield* generateIterable(this);
   }
 
-  @visibleForTesting
-  Iterable<State<T>> generateIterable(State<T> node) sync* {
-    yield node;
-    for (var child in node.substates) {
-      yield* generateIterable(child);
-    }
-  }
-
   @override
   bool operator ==(Object other) =>
       other is State &&
@@ -87,6 +79,14 @@ class State<T> {
     if (onExit != null && context != null) onExit!(context);
   }
 
+  @visibleForTesting
+  Iterable<State<T>> generateIterable(State<T> node) sync* {
+    yield node;
+    for (var child in node.substates) {
+      yield* generateIterable(child);
+    }
+  }
+
   Transition<T>? transitionFor(
           {String? event,
           Duration? elapsedTime,
@@ -97,4 +97,33 @@ class State<T> {
           elapsedTime: elapsedTime,
           context: context,
           ignoreContext: ignoreContext));
+}
+
+class SCXMLState<T> extends State<T> {
+  /// Defines the substate to use initially (`<initial>` child)
+  final Transition<T>? initialTransition;
+
+  /// Defines the initial substates (`initial` attribute)
+  final String? initialStateIDs;
+
+  SCXMLState(id,
+      {transitions = const [],
+      onEntry,
+      onExit,
+      isInitial = false,
+      isFinal = false,
+      substates = const [],
+      this.initialTransition,
+      this.initialStateIDs})
+      : assert(
+            (initialStateIDs == null && initialTransition == null) ||
+                ((initialStateIDs == null) ^ (initialTransition == null)),
+            'Cannot use initial attribute and <initial> child simultaneously'),
+        super(id,
+            transitions: transitions,
+            onEntry: onEntry,
+            onExit: onExit,
+            isInitial: isInitial,
+            isFinal: isFinal,
+            substates: substates);
 }
