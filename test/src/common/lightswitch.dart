@@ -30,13 +30,11 @@ final transitionOff = const EventTransition<Lightbulb>('off', event: turnOff);
 final stateOff = State<Lightbulb>('off',
     isInitial: true,
     transitions: [transitionOn],
-    onEntry: (b) => b.isOn = false,
-    onExit: (b) => b.wasOn = false);
+    onEntry: (b) => b.isOn = false);
 final stateOn = State<Lightbulb>('on',
     transitions: [transitionOff],
     onEntry: (b) => b.isOn = true,
     onExit: (b) {
-      b.wasOn = true;
       b.cycleCount += 1;
     });
 

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import 'package:collection/collection.dart';
+import 'package:meta/meta.dart';
 import 'package:quiver/core.dart';
 import 'package:statecharts/statecharts.dart';
 
@@ -38,30 +39,17 @@ class State<T> {
   /// Action to be performed when this state or container is exited
   final Action<T>? onExit;
 
-  /// Used to find the containing state (when this is a substate)
-  late final State<T>? container;
-
-  factory State(id,
-      {Iterable<Transition<T>> transitions = const [],
-      onEntry,
-      onExit,
-      isInitial = false,
-      isFinal = false,
-      Iterable<State<T>> substates = const []}) {
-    final s = State<T>._(
-        id, transitions, onEntry, onExit, isInitial, isFinal, substates);
-    for (var probe in s.substates) {
-      probe.container = s;
-    }
-    return s;
-  }
-
-  State._(this.id, this.transitions, this.onEntry, this.onExit, this.isInitial,
-      this.isFinal, this.substates);
+  State(this.id,
+      {this.transitions = const [],
+      this.onEntry,
+      this.onExit,
+      this.isInitial = false,
+      this.isFinal = false,
+      this.substates = const []});
 
   @override
-  int get hashCode => hashObjects(
-      [id, container, onEntry, onExit, transitions, isInitial, isFinal]);
+  int get hashCode =>
+      hashObjects([id, onEntry, onExit, transitions, isInitial, isFinal]);
 
   State<T> get initialState => isInitial
       ? this
@@ -69,13 +57,24 @@ class State<T> {
 
   bool get isAtomic => substates.isEmpty;
 
+  Iterable<State<T>> get toIterable sync* {
+    yield* generateIterable(this);
+  }
+
+  @visibleForTesting
+  Iterable<State<T>> generateIterable(State<T> node) sync* {
+    yield node;
+    for (var child in node.substates) {
+      yield* generateIterable(child);
+    }
+  }
+
   @override
   bool operator ==(Object other) =>
       other is State &&
       id == other.id &&
       onEntry == other.onEntry &&
       onExit == other.onExit &&
-      container == other.container &&
       IterableEquality().equals(transitions, other.transitions) &&
       IterableEquality().equals(substates, other.substates) &&
       isInitial == other.isInitial;

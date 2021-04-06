@@ -18,19 +18,39 @@
 import 'package:statecharts/statecharts.dart';
 import 'package:test/test.dart';
 
-import 'common/lightswitch.dart';
+import '../common/lightswitch.dart';
 
 void main() {
-  test('explicit initial state',
-      () => expect(lightswitch.initialState.id, equals('off')));
+  group('standalone state', () {
+    final state = State('a');
 
-  test('implicit initial state', () {
-    final singularity = State('singularity', substates: [State('one')]);
-    expect(singularity.initialState.id, equals('one'));
+    test('is atomic', () => expect(state.isAtomic, isTrue));
+
+    test('generates iterable',
+        () => expect(state.toIterable, containsAllInOrder([state])));
   });
 
-  test('all atomic',
-      () => expect(lightswitch.substates.every((s) => s.isAtomic), isTrue));
+  group('nested state', () {
+    final a11 = State('a11');
+    final a1 = State('a1', substates: [a11]);
+    final a2 = State('a2');
+    final a = State('a', substates: [a1, a2]);
+
+    test('is not atomic', () => expect(a.isAtomic, isFalse));
+
+    test('generates depth-first iterable',
+        () => expect(a.toIterable, containsAllInOrder([a, a1, a11, a2])));
+  });
+
+  group('initial state', () {
+    test('explicit initial state',
+        () => expect(lightswitch.initialState.id, equals('off')));
+
+    test('first substate is implicit initial state', () {
+      final singularity = State('singularity', substates: [State('one')]);
+      expect(singularity.initialState.id, equals('one'));
+    });
+  });
 
   test('transitions', () {
     expect(
