@@ -19,6 +19,27 @@ import 'package:test/test.dart';
 import '../lightswitch.dart';
 
 void main() {
+  group('implementation', () {
+    final a2 = State('a2');
+    final a11 = State('a11');
+    final a1 = State('a1', substates: [a11]);
+    final a = State('a', substates: [a1, a2]);
+    final eng = Engine(a);
+
+    group('getProperAncestors', () {
+      test('emits empty for root',
+          () => expect(eng.getProperAncestors(a), isEmpty));
+      test(
+          'finds up to root',
+          () =>
+              expect(eng.getProperAncestors(a11), containsAllInOrder([a1, a])));
+      test(
+          'omits `toState`',
+          () =>
+              expect(eng.getProperAncestors(a11, a), containsAllInOrder([a1])));
+    });
+  });
+
   group('state machine', () {
     Engine? engine;
     Lightbulb? bulb;
