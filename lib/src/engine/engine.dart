@@ -13,52 +13,62 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import 'dart:collection';
+
 import 'package:meta/meta.dart';
 import 'package:statecharts/statecharts.dart';
 
 class Engine<T> {
   final State<T> rootState;
   final T? context;
-  final Map<State<T>, State<T>> _parentOf = {};
-  final Map<String, State<T>> _nodeLookup = {};
+  final Map<State<T>, State<T>?> _parentOf;
+  // Use a LinkedHashMap to preserve document order
+  final LinkedHashMap<String, State<T>> _nodeLookup;
   var _activeStates;
 
+  var _configuration;
+  var _statesToInvoke;
+  var _datamodel;
+  var _internalQueue;
+  var _externalQueue;
+  var _historyValue;
+  var _running;
+  var _binding;
+
   Engine(this.rootState, [this.context])
-      : _activeStates = rootState.initialStates;
+      : _activeStates = rootState.initialStates,
+        _nodeLookup = LinkedHashMap.fromIterable(
+            rootState.flatten.where((s) => s.id != null),
+            key: (s) => s.id,
+            value: (s) => s),
+        _parentOf = Map.fromEntries(parentEntries(rootState));
 
-  State<T>? nodeById(String id) {
-    void addChildren(container) {
-      if (!container.isAtomic) {
-        _nodeLookup
-            .addAll({for (var child in container.substates) child: container});
-        for (var child in container.substates) {
-          addChildren(child);
-        }
-      }
-    }
+  State<T>? nodeById(String id) => _nodeLookup[id];
 
-    if (_nodeLookup.isEmpty) {
-      addChildren(rootState);
+  static Iterable<MapEntry<State<T>, State<T>?>> parentEntries<T>(
+      State<T> state,
+      [State<T>? parent]) sync* {
+    yield MapEntry(state, parent);
+    for (var child in state.substates) {
+      yield* parentEntries(child, state);
     }
-    return _nodeLookup[id];
   }
 
-  State<T>? parentOf(State<T> state) {
-    void addChildren(container) {
-      if (!container.isAtomic) {
-        _parentOf
-            .addAll({for (var child in container.substates) child: container});
-        for (var child in container.substates) {
-          addChildren(child);
-        }
-      }
-    }
+  State<T>? parentOf(State<T> state) => _parentOf[state];
 
-    if (_parentOf.isEmpty) {
-      addChildren(rootState);
-    }
-    return _parentOf[state];
-  }
+/*
+function getEffectiveTargetStates(transition)
+    targets = new OrderedSet()
+    for s in transition.target
+        if isHistoryState(s):
+            if historyValue[s.id]:
+                targets.union(historyValue[s.id])
+            else:
+                targets.union(getEffectiveTargetStates(s.transition))
+        else:
+            targets.add(s)
+    return targets
+*/
 
   /// Finds the ancestors of a state
   ///
