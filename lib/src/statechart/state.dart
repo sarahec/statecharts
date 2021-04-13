@@ -30,6 +30,8 @@ class State<T> {
   /// Declares this to be a final state
   final bool isFinal;
 
+  final bool isParallel;
+
   final Iterable<State<T>> substates;
   final Iterable<Transition<T>> transitions;
 
@@ -45,6 +47,7 @@ class State<T> {
       this.onExit,
       this.isInitial = false,
       this.isFinal = false,
+      this.isParallel = false,
       this.substates = const []});
 
   @override
@@ -61,6 +64,8 @@ class State<T> {
 
   bool get isAtomic => substates.isEmpty;
 
+  bool get isCompound => substates.isNotEmpty;
+
   Iterable<State<T>> get toIterable sync* {
     yield* generateIterable(this);
   }
@@ -69,6 +74,9 @@ class State<T> {
   bool operator ==(Object other) =>
       other is State &&
       id == other.id &&
+      isInitial == other.isInitial &&
+      isFinal == other.isFinal &&
+      isParallel == other.isParallel &&
       onEntry == other.onEntry &&
       onExit == other.onExit &&
       IterableEquality().equals(transitions, other.transitions) &&
