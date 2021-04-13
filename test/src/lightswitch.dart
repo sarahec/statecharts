@@ -24,9 +24,10 @@ class Lightbulb {
 const turnOn = 'turnOn';
 const turnOff = 'turnOff';
 
-final transitionOn = EventTransition<Lightbulb>('on',
-    condition: (b) => b.cycleCount < 10, event: turnOn);
-final transitionOff = const EventTransition<Lightbulb>('off', event: turnOff);
+final transitionOn = EventTransition<Lightbulb>(
+    targets: ['on'], condition: (b) => b.cycleCount < 10, event: turnOn);
+final transitionOff =
+    const EventTransition<Lightbulb>(targets: ['off'], event: turnOff);
 final stateOff = State<Lightbulb>('off',
     isInitial: true,
     transitions: [transitionOn],
@@ -50,13 +51,15 @@ final countedLightswitch = State<Lightbulb>('lightswitch2', substates: [
   State<Lightbulb>('off',
       isInitial: true,
       transitions: [
-        EventTransition<Lightbulb>('on',
-            event: turnOn, condition: (b) => b.cycleCount < 10),
+        EventTransition<Lightbulb>(
+            targets: ['on'],
+            event: turnOn,
+            condition: (b) => b.cycleCount < 10),
       ],
       onEntry: (b) => b.isOn = false),
   State<Lightbulb>('on',
       transitions: [
-        EventTransition<Lightbulb>('off', event: turnOff),
+        EventTransition<Lightbulb>(targets: ['off'], event: turnOff),
       ],
       onEntry: (b) => b.isOn = true,
       onExit: (b) {

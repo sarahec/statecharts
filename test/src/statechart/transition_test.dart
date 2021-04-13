@@ -3,7 +3,8 @@ import 'package:test/test.dart';
 
 void main() {
   group('event transition', () {
-    final eventTransition = const EventTransition<int>('a', event: 'onA');
+    final eventTransition =
+        const EventTransition<int>(targets: ['a'], event: 'onA');
 
     test('matches event',
         () => expect(eventTransition.matches(anEvent: 'onA'), isTrue));
@@ -18,8 +19,8 @@ void main() {
   });
 
   group('event transition + condition', () {
-    final conditionalTransition = EventTransition<int>('cond',
-        event: 'onA', condition: (int c) => c == 0);
+    final conditionalTransition = EventTransition<int>(
+        targets: ['cond'], event: 'onA', condition: (int c) => c == 0);
 
     test(
         'matches event and condition',
@@ -41,15 +42,15 @@ void main() {
 
   group('non-event transition', () {
     test('matches on condition', () {
-      final conditionalTransition =
-          NonEventTransition<int>('cond', condition: (int c) => c == 0);
+      final conditionalTransition = NonEventTransition<int>(
+          targets: ['cond'], condition: (int c) => c == 0);
       expect(conditionalTransition.matches(context: 0), isTrue);
       expect(conditionalTransition.matches(context: 1), isFalse);
     });
 
     test('matches on delay', () {
-      final conditionalTransition =
-          NonEventTransition<int>('cond', after: Duration(minutes: 1));
+      final conditionalTransition = NonEventTransition<int>(
+          targets: ['cond'], after: Duration(minutes: 1));
       expect(conditionalTransition.matches(elapsedTime: Duration(minutes: 1)),
           isTrue);
       expect(
@@ -59,8 +60,8 @@ void main() {
     });
 
     test('ignores event on match', () {
-      final conditionalTransition =
-          NonEventTransition<int>('cond', condition: (int c) => c == 0);
+      final conditionalTransition = NonEventTransition<int>(
+          targets: ['cond'], condition: (int c) => c == 0);
       expect(conditionalTransition.matches(anEvent: 'anything', context: 0),
           isTrue);
     });
