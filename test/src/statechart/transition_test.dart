@@ -16,6 +16,15 @@ void main() {
 
     test('doesn\'t match wrong event',
         () => expect(eventTransition.matches(anEvent: 'onB'), isFalse));
+
+    test(
+        '== matching transition',
+        () => expect(eventTransition,
+            equals(EventTransition<int>(targets: ['a'], event: 'onA'))));
+    test(
+        '!= mismatched transition',
+        () => expect(eventTransition,
+            isNot(equals(EventTransition<int>(targets: ['b'], event: 'onB')))));
   });
 
   group('event transition + condition', () {
