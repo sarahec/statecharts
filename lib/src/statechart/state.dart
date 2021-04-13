@@ -51,9 +51,13 @@ class State<T> {
   int get hashCode =>
       hashObjects([id, onEntry, onExit, transitions, isInitial, isFinal]);
 
-  State<T> get initialState => isInitial
-      ? this
-      : substates.firstWhere((s) => s.isInitial, orElse: () => substates.first);
+  // TODO move to an extension used by the state configuration
+  bool get hasExplicitInitialSubstate => substates.any((s) => s.isInitial);
+
+  State<T> get initialState => isInitial ? this : initialSubstate;
+
+  State<T> get initialSubstate =>
+      substates.firstWhere((s) => s.isInitial, orElse: () => substates.first);
 
   bool get isAtomic => substates.isEmpty;
 
@@ -97,6 +101,15 @@ class State<T> {
           elapsedTime: elapsedTime,
           context: context,
           ignoreContext: ignoreContext));
+}
+
+class HistoryState<T> extends State<T> {
+  final String type;
+  final Transition transition;
+
+  HistoryState(String? id, this.transition, [this.type = 'deep'])
+      : assert(type == 'shallow' || type == 'deep', 'invalid history type'),
+        super(id);
 }
 
 class SCXMLState<T> extends State<T> {
