@@ -23,10 +23,11 @@ class Engine<T> {
   final T? context;
   final Map<State<T>, State<T>?> _parentOf;
   // Use a LinkedHashMap to preserve document order
-  final LinkedHashMap<String, State<T>> _nodeLookup;
-  var _activeStates;
+  final LinkedHashMap<String, NodeInfo<T>> _nodeLookup;
 
-  Iterable<State<T>> _configuration = {};
+  Iterable<State<T>> get activeStates => _configuration.map((i) => i.state);
+
+  Iterable<NodeInfo<T>> _configuration = {};
   var _statesToInvoke;
   var _datamodel;
   var _internalQueue;
@@ -38,7 +39,7 @@ class Engine<T> {
   var _savedHistoryStates;
 
   Engine(this.rootState, [this.context])
-      : _activeStates = rootState.initialStates,
+      : _configuration = rootState.initialStates,
         _nodeLookup = LinkedHashMap.fromIterable(
             rootState.flatten.where((s) => s.id != null),
             key: (s) => s.id,
@@ -108,7 +109,7 @@ class Engine<T> {
   }
 
   @visibleForTesting
-  State<T>? getTransitionDomain(TransitionRecord<T> t) {
+  State<T>? getTransitionDomain(TransitionInfo<T> t) {
     final tstates = getEffectiveTargetStates(t);
     if (tstates.isEmpty) return null;
     if (t.type == 'internal' &&
@@ -131,10 +132,7 @@ class Engine<T> {
           : false;
 
   @visibleForTesting
-  State<T>? nodeById(String id) => _nodeLookup[id];
-
-  @visibleForTesting
-  State<T>? parentOf(State<T> state) => _parentOf[state];
+  NodeInfo<T>? nodeById(String id) => _nodeLookup[id];
 
   @visibleForTesting
   static Iterable<MapEntry<State<T>, State<T>?>> parentEntries<T>(
@@ -147,11 +145,25 @@ class Engine<T> {
   }
 }
 
-class TransitionRecord<T> {
+class TransitionInfo<T> {
   final State<T> source;
   final Transition<T> transition;
 
-  TransitionRecord(this.source, this.transition);
+  TransitionInfo(this.source, this.transition);
 
   String get type => transition.type;
+}
+
+class NodeInfo<T> {
+  final State<T> state;
+  final NodeInfo<T>? parent;
+  final int order;
+  late final Iterable<NodeInfo<T>> substates;
+
+  factory NodeInfo.wrapState(State<T> state, [order = 1, NodeInfo<T>? parent]) {
+    final result = NodeInfo(state, order, parent);
+    
+    return result;
+  }
+  NodeInfo(this.state, this.order, [this.parent]);
 }
