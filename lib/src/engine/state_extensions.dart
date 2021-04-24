@@ -16,39 +16,15 @@ import 'package:statecharts/statecharts.dart';
  * limitations under the License.
  */
 
-extension TreeWalker<T> on State<T> {
-  void walkTree(bool Function(State<T>) callback) => _walk(callback, this);
-
-  void _walk(bool Function(State<T>) callback, State<T> container) {
-    if (!callback(container)) return;
-    for (var probe in container.substates) {
-      if (probe.substates.isNotEmpty) {
-        _walk(callback, probe);
-      } else {
-        callback(probe);
-      }
+extension Flatten<T> on State<T> {
+  Iterable<State<T>> generateIterable(State<T> node) sync* {
+    yield node;
+    for (var child in node.substates) {
+      yield* generateIterable(child);
     }
   }
-}
 
-extension Flatten<T> on State<T> {
-  Iterable<State<T>> get flatten {
-    final result = <State<T>>[];
-    walkTree((s) {
-      result.add(s);
-      return true;
-    });
-    return result;
-  }
-}
-
-extension InitialStates<T> on State<T> {
-  Iterable<State<T>> get initialStates {
-    final result = <State<T>>[];
-    walkTree((s) {
-      result.add(s);
-      return true;
-    });
-    return result;
+  Iterable<State<T>> get toIterable sync* {
+    yield* generateIterable(this);
   }
 }

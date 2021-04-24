@@ -51,20 +51,4 @@ void main() {
       expect(singularity.initialState.id, equals('one'));
     });
   });
-
-  test('transitions', () {
-    expect(
-        lightswitch.initialState
-            .transitionFor(event: turnOn, ignoreContext: true),
-        isNotNull);
-    expect(
-        lightswitch.initialState.transitionFor(
-            event: turnOff,
-            ignoreContext: true), // ignore the counter test condition
-        isNull);
-    expect(
-        lightswitch.initialState
-            .transitionFor(event: turnOn, ignoreContext: true),
-        equals(transitionOn));
-  });
 }

@@ -39,7 +39,7 @@ final stateOn = State<Lightbulb>('on',
       b.cycleCount += 1;
     });
 
-final lightswitch = State<Lightbulb>(
+final lightswitch = RootState<Lightbulb>(
   'lightswitch',
   substates: [
     stateOff,
