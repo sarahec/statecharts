@@ -19,15 +19,11 @@ import 'package:meta/meta.dart';
 import 'package:statecharts/statecharts.dart';
 
 class Engine<T> {
-  final State<T> rootState;
+  final RuntimeState<T> root;
   final T? context;
-  final Map<State<T>, State<T>?> _parentOf;
-  // Use a LinkedHashMap to preserve document order
-  final LinkedHashMap<String, NodeInfo<T>> _nodeLookup;
 
-  Iterable<State<T>> get activeStates => _configuration.map((i) => i.state);
+  Iterable<RuntimeState<T>> _configuration = {};
 
-  Iterable<NodeInfo<T>> _configuration = {};
   var _statesToInvoke;
   var _datamodel;
   var _internalQueue;
@@ -35,16 +31,12 @@ class Engine<T> {
   var _historyValue;
   var _running;
   var _binding;
-
   var _savedHistoryStates;
 
-  Engine(this.rootState, [this.context])
-      : _configuration = rootState.initialStates,
-        _nodeLookup = LinkedHashMap.fromIterable(
-            rootState.flatten.where((s) => s.id != null),
-            key: (s) => s.id,
-            value: (s) => s),
-        _parentOf = Map.fromEntries(parentEntries(rootState));
+  Engine(RootState<T> startNode, [this.context])
+      : root = RuntimeState.wrapSubtree(startNode);
+
+  Iterable<State<T>> get activeStates => _configuration.map((i) => i.state);
 
   bool execute({String? anEvent, Duration? elapsedTime}) {
     // assert(_activeStates.isNotEmpty);
@@ -63,22 +55,20 @@ class Engine<T> {
     // return endingState.id != startingState.id;
   }
 
-  @visibleForTesting
-  State<T> findLCCA(stateList) => getProperAncestors(stateList.first)
-      .where((s) => !s.isAtomic)
-      .firstWhere((anc) => stateList.skip(1).all((s) => isDescendant(s, anc)));
+  RuntimeState<T> findLCCA(Iterable<RuntimeState<T>> stateList) =>
+      getProperAncestors(stateList.first).where((s) => !s.isAtomic).firstWhere(
+          (anc) => stateList.skip(1).every((s) => isDescendant(s, anc)));
+
+  Iterable<RuntimeState<T>> getChildStates(RuntimeState<T> state) =>
+      state.substates.where((s) => !s.isHistoryState);
 
   @visibleForTesting
-  Iterable<State<T>> getChildStates(state) =>
-      state.substates.where((s) => !s is HistoryState);
-
-  @visibleForTesting
-  Iterable<State<T>> getEffectiveTargetStates(transition) {
+  Iterable<RuntimeState<T>> getEffectiveTargetStates(transition) {
     // ignore: prefer_collection_literals
-    final targets = LinkedHashSet<State<T>>();
+    final targets = LinkedHashSet<RuntimeState<T>>();
     for (var tid in transition.targets) {
-      final s = nodeById(tid);
-      if (s is HistoryState<T>) {
+      final s = tid.source;
+      if (s.isHistoryState) {
         if (_savedHistoryStates.hasKey(tid)) {
           targets.addAll(_savedHistoryStates[tid]);
         } else {
@@ -96,20 +86,20 @@ class Engine<T> {
   /// If `toState` is null, returns the set of all ancestors of `fromState` up
   /// to (and including) `rootState`. If `toState` is not null, return all
   /// ancestors up to but not including `toState`.
-  @visibleForTesting
-  Iterable<State<T>> getProperAncestors(fromState, [toState]) sync* {
-    if (fromState == rootState) return;
+  Iterable<RuntimeState<T>> getProperAncestors(RuntimeState<T> fromState,
+      [RuntimeState<T>? toState]) sync* {
+    if (fromState == root) return;
     if (toState != null && fromState == toState) return;
-    var probe = parentOf(fromState);
+    var probe = fromState.parent;
     while (probe != null && toState != probe) {
       yield probe;
-      if (probe == rootState) break;
-      probe = parentOf(probe);
+      if (probe == root) break;
+      probe = probe.parent;
     }
   }
 
   @visibleForTesting
-  State<T>? getTransitionDomain(TransitionInfo<T> t) {
+  State<T>? getTransitionDomain(RuntimeTransition<T> t) {
     final tstates = getEffectiveTargetStates(t);
     if (tstates.isEmpty) return null;
     if (t.type == 'internal' &&
@@ -121,8 +111,7 @@ class Engine<T> {
   }
 
   ///  True if state1 descends from state2
-  @visibleForTesting
-  bool isDescendant(state1, state2) =>
+  bool isDescendant(RuntimeState<T> state1, RuntimeState<T> state2) =>
       getProperAncestors(state2).contains(state1);
 
   bool isInFinalState(State<T> s) => s.isCompound
@@ -130,40 +119,4 @@ class Engine<T> {
       : s.isParallel
           ? s.substates.every((c) => isInFinalState(c))
           : false;
-
-  @visibleForTesting
-  NodeInfo<T>? nodeById(String id) => _nodeLookup[id];
-
-  @visibleForTesting
-  static Iterable<MapEntry<State<T>, State<T>?>> parentEntries<T>(
-      State<T> state,
-      [State<T>? parent]) sync* {
-    yield MapEntry(state, parent);
-    for (var child in state.substates) {
-      yield* parentEntries(child, state);
-    }
-  }
-}
-
-class TransitionInfo<T> {
-  final State<T> source;
-  final Transition<T> transition;
-
-  TransitionInfo(this.source, this.transition);
-
-  String get type => transition.type;
-}
-
-class NodeInfo<T> {
-  final State<T> state;
-  final NodeInfo<T>? parent;
-  final int order;
-  late final Iterable<NodeInfo<T>> substates;
-
-  factory NodeInfo.wrapState(State<T> state, [order = 1, NodeInfo<T>? parent]) {
-    final result = NodeInfo(state, order, parent);
-    
-    return result;
-  }
-  NodeInfo(this.state, this.order, [this.parent]);
 }

@@ -18,8 +18,6 @@
 import 'package:statecharts/statecharts.dart';
 import 'package:test/test.dart';
 
-import '../lightswitch.dart';
-
 void main() {
   group('standalone state', () {
     final state = State('a');
@@ -43,28 +41,9 @@ void main() {
   });
 
   group('initial state', () {
-    test('explicit initial state',
-        () => expect(lightswitch.initialState.id, equals('off')));
-
     test('first substate is implicit initial state', () {
       final singularity = State('singularity', substates: [State('one')]);
-      expect(singularity.initialState.id, equals('one'));
+      expect(singularity.initialSubstate.id, equals('one'));
     });
-  });
-
-  test('transitions', () {
-    expect(
-        lightswitch.initialState
-            .transitionFor(event: turnOn, ignoreContext: true),
-        isNotNull);
-    expect(
-        lightswitch.initialState.transitionFor(
-            event: turnOff,
-            ignoreContext: true), // ignore the counter test condition
-        isNull);
-    expect(
-        lightswitch.initialState
-            .transitionFor(event: turnOn, ignoreContext: true),
-        equals(transitionOn));
   });
 }

@@ -1,3 +1,5 @@
+import 'package:statecharts/statecharts.dart';
+
 /**
  * Copyright 2021 Google LLC
  *
@@ -13,12 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-library statecharts;
 
-export 'src/engine/engine.dart';
-export 'src/engine/runtime_state.dart';
-export 'src/engine/runtime_transition.dart';
-export 'src/statechart/state.dart';
-export 'src/statechart/state_utils.dart';
-export 'src/statechart/transition.dart';
-export 'src/statechart/typedefs.dart';
+extension Flatten<T> on State<T> {
+  Iterable<State<T>> generateIterable(State<T> node) sync* {
+    yield node;
+    for (var child in node.substates) {
+      yield* generateIterable(child);
+    }
+  }
+
+  Iterable<State<T>> get toIterable sync* {
+    yield* generateIterable(this);
+  }
+}

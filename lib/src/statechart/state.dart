@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 import 'package:collection/collection.dart';
-import 'package:meta/meta.dart';
 import 'package:quiver/core.dart';
 import 'package:statecharts/statecharts.dart';
 
@@ -30,9 +29,13 @@ class State<T> {
   /// Declares this to be a final state
   final bool isFinal;
 
+  /// Declares this to be a "parallel" state (all children active/inactive together)
   final bool isParallel;
 
+  /// States contained within this one
   final Iterable<State<T>> substates;
+
+  /// Transitions from this state
   final Iterable<Transition<T>> transitions;
 
   /// Action to be performed when this state or container is entered
@@ -54,21 +57,12 @@ class State<T> {
   int get hashCode =>
       hashObjects([id, onEntry, onExit, transitions, isInitial, isFinal]);
 
-  // TODO move to an extension used by the state configuration
-  bool get hasExplicitInitialSubstate => substates.any((s) => s.isInitial);
-
-  State<T> get initialState => isInitial ? this : initialSubstate;
-
   State<T> get initialSubstate =>
       substates.firstWhere((s) => s.isInitial, orElse: () => substates.first);
 
   bool get isAtomic => substates.isEmpty;
 
   bool get isCompound => substates.isNotEmpty;
-
-  Iterable<State<T>> get toIterable sync* {
-    yield* generateIterable(this);
-  }
 
   @override
   bool operator ==(Object other) =>
@@ -90,25 +84,6 @@ class State<T> {
   void exit(T? context) {
     if (onExit != null && context != null) onExit!(context);
   }
-
-  @visibleForTesting
-  Iterable<State<T>> generateIterable(State<T> node) sync* {
-    yield node;
-    for (var child in node.substates) {
-      yield* generateIterable(child);
-    }
-  }
-
-  Transition<T>? transitionFor(
-          {String? event,
-          Duration? elapsedTime,
-          T? context,
-          ignoreContext = false}) =>
-      transitions.firstWhereOrNull((t) => t.matches(
-          anEvent: event,
-          elapsedTime: elapsedTime,
-          context: context,
-          ignoreContext: ignoreContext));
 }
 
 class HistoryState<T> extends State<T> {
@@ -120,15 +95,15 @@ class HistoryState<T> extends State<T> {
         super(id);
 }
 
-class SCXMLState<T> extends State<T> {
+class RootState<T> extends State<T> {
   /// Defines the substate to use initially (`<initial>` child)
   final Transition<T>? initialTransition;
 
   /// Defines the initial substates (`initial` attribute)
   final String? initialStateIDs;
 
-  SCXMLState(id,
-      {transitions = const [],
+  RootState(id,
+      {transitions,
       onEntry,
       onExit,
       isInitial = false,
@@ -141,7 +116,7 @@ class SCXMLState<T> extends State<T> {
                 ((initialStateIDs == null) ^ (initialTransition == null)),
             'Cannot use initial attribute and <initial> child simultaneously'),
         super(id,
-            transitions: transitions,
+            transitions: transitions ?? [],
             onEntry: onEntry,
             onExit: onExit,
             isInitial: isInitial,
