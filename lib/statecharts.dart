@@ -16,6 +16,7 @@
 library statecharts;
 
 export 'src/engine/engine.dart';
+export 'src/engine/execution_context.dart';
 export 'src/engine/runtime_state.dart';
 export 'src/engine/runtime_transition.dart';
 export 'src/statechart/state.dart';
