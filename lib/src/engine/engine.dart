@@ -34,7 +34,8 @@ class Engine<T> {
   Engine(RootState<T> startNode, [this.context])
       : root = RuntimeState.wrapSubtree(startNode);
 
-  Iterable<State<T>> get activeStates => _configuration.map((i) => i.state);
+  Iterable<State<T>> get activeStates =>
+      [for (var i in _configuration) i.state];
 
   ExecutionContext<T> get executionContext => _executionContext;
 

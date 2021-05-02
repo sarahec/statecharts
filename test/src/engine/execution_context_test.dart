@@ -13,17 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'package:statecharts/statecharts.dart';
+import 'package:test/test.dart';
 
-extension Flatten<T> on State<T> {
-  Iterable<State<T>> generateIterable(State<T> node) sync* {
-    yield node;
-    for (var child in node.substates) {
-      yield* generateIterable(child);
-    }
-  }
-
-  Iterable<State<T>> get toIterable sync* {
-    yield* generateIterable(this);
-  }
+void main() {
+  test('execution context ...', () async {
+    // TODO: Implement test
+  });
 }
