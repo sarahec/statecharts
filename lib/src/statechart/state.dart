@@ -19,6 +19,59 @@ import 'package:statecharts/statecharts.dart';
 
 // final _log = Logger('State');
 
+class HistoryState<T> extends State<T> {
+  final String type;
+  final Transition transition;
+
+  HistoryState(String? id, this.transition, [this.type = 'deep'])
+      : assert(type == 'shallow' || type == 'deep', 'invalid history type'),
+        super(id);
+}
+
+class RootState<T> extends State<T> {
+  /// Defines the substate to use initially (`<initial>` child)
+  final Transition<T>? initialTransition;
+
+  /// Space-seperated list of initial state IDs (`initial` attribute)
+  final String? initialRefs;
+
+  RootState(id, substates,
+      {transitions,
+      onEntry,
+      onExit,
+      isInitial = false,
+      isFinal = false,
+      this.initialTransition,
+      this.initialRefs})
+      : assert(substates?.isNotEmpty, 'At least one substate required'),
+        assert(
+            (initialRefs == null && initialTransition == null) ||
+                ((initialRefs == null) ^ (initialTransition == null)),
+            'Cannot use initial attribute and <initial> child simultaneously'),
+        super(id,
+            transitions: transitions ?? [],
+            onEntry: onEntry,
+            onExit: onExit,
+            isInitial: isInitial,
+            isFinal: isFinal,
+            substates: substates);
+
+  Iterable<Transition<T>> get initializingTransitions {
+    if (initialTransition != null) {
+      return [initialTransition!];
+    }
+    if (initialRefs != null) {
+      return initialRefs!
+          .split(' ')
+          .map((id) => NonEventTransition<T>(targets: [id]));
+    }
+    // If nothing was specified, default to the first child
+    return [
+      NonEventTransition<T>(targets: [substates.first.id!])
+    ];
+  }
+}
+
 class State<T> {
   /// Unique identifier within its container
   final String? id;
@@ -84,42 +137,4 @@ class State<T> {
   void exit(T? context) {
     if (onExit != null && context != null) onExit!(context);
   }
-}
-
-class HistoryState<T> extends State<T> {
-  final String type;
-  final Transition transition;
-
-  HistoryState(String? id, this.transition, [this.type = 'deep'])
-      : assert(type == 'shallow' || type == 'deep', 'invalid history type'),
-        super(id);
-}
-
-class RootState<T> extends State<T> {
-  /// Defines the substate to use initially (`<initial>` child)
-  final Transition<T>? initialTransition;
-
-  /// Defines the initial substates (`initial` attribute)
-  final String? initialStateIDs;
-
-  RootState(id,
-      {transitions,
-      onEntry,
-      onExit,
-      isInitial = false,
-      isFinal = false,
-      substates = const [],
-      this.initialTransition,
-      this.initialStateIDs})
-      : assert(
-            (initialStateIDs == null && initialTransition == null) ||
-                ((initialStateIDs == null) ^ (initialTransition == null)),
-            'Cannot use initial attribute and <initial> child simultaneously'),
-        super(id,
-            transitions: transitions ?? [],
-            onEntry: onEntry,
-            onExit: onExit,
-            isInitial: isInitial,
-            isFinal: isFinal,
-            substates: substates);
 }

@@ -14,9 +14,36 @@
 // limitations under the License.
 
 import 'package:test/test.dart';
+import 'package:statecharts/statecharts.dart';
 
 void main() {
-  test('execution context ...', () async {
-    // TODO: Implement test
+  group('initialization', () {
+    final a = State<void>('a');
+    final b = State<void>('b');
+
+    test('selects first child by default', () {
+      final root = RootState<void>('root', [a]);
+      final executionContext = ExecutionContext.initial(root);
+      expect(executionContext, isNotNull);
+      expect(executionContext.statesToEnter.ids, contains('a'));
+    });
+
+    test('selects from initialRefs', () {
+      final root = RootState<void>('root', [a, b], initialRefs: 'b');
+      final executionContext = ExecutionContext.initial(root);
+      expect(executionContext, isNotNull);
+      expect(executionContext.statesToEnter.ids, contains('b'));
+    });
+
+    test('selects ancestors of initial', () {
+      final root = RootState<void>('root', [a, b], initialRefs: 'b');
+      final executionContext = ExecutionContext.initial(root);
+      expect(executionContext, isNotNull);
+      expect(executionContext.statesToEnter.ids, containsAll(['root', 'b']));
+    });
   });
+}
+
+extension TestHelpers<T> on Iterable<RuntimeState<T>> {
+  Iterable<String> get ids => [for (var s in this) s.id!];
 }

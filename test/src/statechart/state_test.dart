@@ -20,9 +20,6 @@ void main() {
     final state = State('a');
 
     test('is atomic', () => expect(state.isAtomic, isTrue));
-
-    test('generates iterable',
-        () => expect(state.toIterable, containsAllInOrder([state])));
   });
 
   group('nested state', () {
@@ -32,9 +29,6 @@ void main() {
     final a = State('a', substates: [a1, a2]);
 
     test('is not atomic', () => expect(a.isAtomic, isFalse));
-
-    test('generates depth-first iterable',
-        () => expect(a.toIterable, containsAllInOrder([a, a1, a11, a2])));
   });
 
   group('initial state', () {

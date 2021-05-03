@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 import 'package:collection/collection.dart';
 import 'package:statecharts/statecharts.dart';
 
@@ -27,6 +26,65 @@ class RuntimeState<T> implements State<T> {
   late final Iterable<RuntimeTransition<T>> transitions;
 
   RuntimeState(this.state, this.order, [this.parent]);
+
+  @override
+  String? get id => state.id;
+
+  @override
+  State<T> get initialSubstate => state.initialSubstate;
+
+  @override
+  bool get isAtomic => state.isAtomic;
+
+  @override
+  bool get isCompound => state.isCompound;
+
+  @override
+  bool get isFinal => state.isFinal;
+
+  bool get isHistoryState => state is HistoryState<T>;
+
+  @override
+  bool get isInitial => state.isInitial;
+
+  @override
+  bool get isParallel => state.isParallel;
+
+  bool get isScxmlState => state is RootState<T>;
+
+  @override
+  Action<T>? get onEntry => state.onEntry;
+
+  @override
+  Action<T>? get onExit => state.onExit;
+
+  Iterable<RuntimeState<T>> get toIterable sync* {
+    yield* generateIterable(this);
+  }
+
+  @override
+  void enter(T? context) => state.enter(context);
+
+  @override
+  void exit(T? context) => state.exit(context);
+
+  Iterable<RuntimeState<T>> generateIterable(RuntimeState<T> node) sync* {
+    yield node;
+    for (var child in node.substates) {
+      yield* generateIterable(child);
+    }
+  }
+
+  Transition<T>? transitionFor(
+          {String? event,
+          Duration? elapsedTime,
+          T? context,
+          ignoreContext = false}) =>
+      transitions.firstWhereOrNull((t) => t.matches(
+          anEvent: event,
+          elapsedTime: elapsedTime,
+          context: context,
+          ignoreContext: ignoreContext));
 
   static RuntimeState<T> wrapSubtree<T>(State<T> state,
       [order = 0, RuntimeState<T>? parent]) {
@@ -51,56 +109,8 @@ class RuntimeState<T> implements State<T> {
 
     final wrappedRoot = _wrap(state, parent);
     for (var t in transitions) {
-      t.targetStates = [for (var s in t.targets) stateMap[s]!];
+      t.attachTargetStates(stateMap);
     }
     return wrappedRoot;
   }
-
-  @override
-  void enter(T? context) => state.enter(context);
-
-  @override
-  void exit(T? context) => state.exit(context);
-
-  @override
-  String? get id => state.id;
-
-  @override
-  State<T> get initialSubstate => state.initialSubstate;
-
-  @override
-  bool get isAtomic => state.isAtomic;
-
-  @override
-  bool get isCompound => state.isCompound;
-
-  @override
-  bool get isFinal => state.isFinal;
-
-  bool get isHistoryState => state is HistoryState<T>;
-
-  bool get isScxmlState => state is RootState<T>;
-
-  @override
-  bool get isInitial => throw UnimplementedError();
-
-  @override
-  bool get isParallel => state.isParallel;
-
-  @override
-  Action<T>? get onEntry => state.onEntry;
-
-  @override
-  Action<T>? get onExit => state.onExit;
-
-  Transition<T>? transitionFor(
-          {String? event,
-          Duration? elapsedTime,
-          T? context,
-          ignoreContext = false}) =>
-      transitions.firstWhereOrNull((t) => t.matches(
-          anEvent: event,
-          elapsedTime: elapsedTime,
-          context: context,
-          ignoreContext: ignoreContext));
 }

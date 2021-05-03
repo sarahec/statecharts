@@ -68,8 +68,7 @@ class NonEventTransition<T> extends Transition<T> {
       this.after,
       Condition<T>? condition,
       String type = 'external'})
-      : assert(after != null || condition != null),
-        super(targets, condition, type);
+      : super(targets, condition, type);
 
   @override
   bool matches(
@@ -78,7 +77,8 @@ class NonEventTransition<T> extends Transition<T> {
           T? context,
           ignoreContext = false}) =>
       (!ignoreContext && condition != null && meetsCondition(context)) ||
-      (elapsedTime != null && elapsedTime.compareTo(after!) >= 0);
+      (elapsedTime != null && elapsedTime.compareTo(after!) >= 0) ||
+      true;
 
   @override
   int get hashCode => hash4(targets, after, condition, type);

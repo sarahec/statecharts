@@ -45,4 +45,8 @@ class RuntimeTransition<T> implements Transition<T> {
 
   @override
   String get type => transition.type;
+
+  void attachTargetStates(Map<String, RuntimeState<T>> stateMap) {
+    targetStates = [for (var s in transition.targets) stateMap[s]!];
+  }
 }

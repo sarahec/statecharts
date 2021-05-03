@@ -20,6 +20,5 @@ export 'src/engine/execution_context.dart';
 export 'src/engine/runtime_state.dart';
 export 'src/engine/runtime_transition.dart';
 export 'src/statechart/state.dart';
-export 'src/statechart/state_utils.dart';
 export 'src/statechart/transition.dart';
 export 'src/statechart/typedefs.dart';

@@ -40,7 +40,7 @@ final stateOn = State<Lightbulb>('on',
 
 final lightswitch = RootState<Lightbulb>(
   'lightswitch',
-  substates: [
+  [
     stateOff,
     stateOn,
   ],
