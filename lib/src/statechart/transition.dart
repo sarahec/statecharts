@@ -77,8 +77,7 @@ class NonEventTransition<T> extends Transition<T> {
           T? context,
           ignoreContext = false}) =>
       (!ignoreContext && condition != null && meetsCondition(context)) ||
-      (elapsedTime != null && elapsedTime.compareTo(after!) >= 0) ||
-      true;
+      (elapsedTime != null && elapsedTime.compareTo(after!) >= 0);
 
   @override
   int get hashCode => hash4(targets, after, condition, type);

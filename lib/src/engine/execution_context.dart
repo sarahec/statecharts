@@ -37,6 +37,11 @@ class ExecutionContext<T> {
         .._buildLookupMap()
         .._loadInitialStates(rootNode.initializingTransitions);
 
+  @visibleForTesting
+  factory ExecutionContext.withRoot(RootState<T> rootNode) =>
+      ExecutionContext._(RuntimeState.wrapSubtree(rootNode), {}, {}, {})
+        .._buildLookupMap();
+
   ExecutionContext._(
       this.root, this._configuration, this.historyValues, this._lookupMap);
 
@@ -143,10 +148,15 @@ class ExecutionContext<T> {
   @visibleForTesting
   int documentOrder(a, b) => a.order.compareTo(b.order);
 
+  /// Finds the lowest common compound ancestor of multiple states.
+  ///
+  /// This finds the minimal subtree contaning a set of states.
   @visibleForTesting
-  RuntimeState<T> findLCCA(Iterable<RuntimeState<T>> stateList) =>
-      getProperAncestors(stateList.first).where((s) => s.isCompound).firstWhere(
-          (anc) => stateList.skip(1).every((s) => isDescendant(s, anc)));
+  RuntimeState<T> findLCCA(Iterable<RuntimeState<T>> stateList) => stateList
+      .map((s) => Set.of(getProperAncestors(s)))
+      .reduce((a, b) => a.intersection(b))
+      .where((s) => s.isCompound)
+      .reduce((a, b) => a.order >= b.order ? a : b);
 
   @visibleForTesting
   Iterable<RuntimeState<T>> getChildStates(RuntimeState<T> state) =>
@@ -177,10 +187,15 @@ class ExecutionContext<T> {
   /// If `toState` is null, returns the set of all ancestors of `fromState` up
   /// to (and including) `rootState`. If `toState` is not null, return all
   /// ancestors up to but not including `toState`.
+  ///
+  /// Special case: the ancestor of the root state is itself (returned once).
   @visibleForTesting
   Iterable<RuntimeState<T>> getProperAncestors(RuntimeState<T> fromState,
       [RuntimeState<T>? toState]) sync* {
-    if (fromState == root) return;
+    if (fromState == root) {
+      yield fromState;
+      return;
+    }
     if (toState != null && fromState == toState) return;
     var probe = fromState.parent;
     while (probe != null && toState != probe) {
@@ -213,6 +228,9 @@ class ExecutionContext<T> {
       : s.isParallel
           ? s.substates.every((c) => isInFinalState(c))
           : false;
+
+  @visibleForTesting
+  RuntimeState<T>? nodeForID(String id) => _lookupMap[id];
 
   Set<RuntimeTransition<T>> removeConflictingTransitions(
       Iterable<RuntimeTransition<T>> enabledTransitions) {

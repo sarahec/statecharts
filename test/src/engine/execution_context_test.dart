@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'package:test/test.dart';
 import 'package:statecharts/statecharts.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('initialization', () {
@@ -40,6 +40,52 @@ void main() {
       final executionContext = ExecutionContext.initial(root);
       expect(executionContext, isNotNull);
       expect(executionContext.statesToEnter.ids, containsAll(['root', 'b']));
+    }, skip: true);
+  });
+
+  group('functions', () {
+    group('ancestry', () {
+      final txa = NonEventTransition(targets: ['a']);
+      final txb = NonEventTransition(targets: ['b']);
+      final txc = NonEventTransition(targets: ['c']);
+      final txd = NonEventTransition(targets: ['d']);
+      final b = State('b', transitions: [txc]);
+      final d = State('d', transitions: [txb]);
+      final c = State('c', substates: [d], transitions: [txd]);
+      final a = State('a', substates: [b, c], transitions: [txb]);
+      final root = RootState('root', [a]);
+
+      var ctx, rtRoot, rtA, rtB, rtC;
+
+      setUp(() {
+        ctx = ExecutionContext.withRoot(root);
+        rtRoot = ctx.nodeForID('root');
+        rtA = ctx.nodeForID('a');
+        rtB = ctx.nodeForID('b');
+        rtC = ctx.nodeForID('c');
+      });
+
+      test(
+          'ancestors(c)',
+          () => expect(
+              ctx.getProperAncestors(rtC).toList(),
+              containsAllInOrder([
+                [rtA, rtRoot]
+              ])));
+
+      test(
+          'ancestors(b)',
+          () => expect(
+              ctx.getProperAncestors(rtB), containsAllInOrder([rtA, rtRoot])));
+
+      test(
+          'LCCA(root)',
+          () => expect(
+              ctx.findLCCA(<RuntimeState>[rtRoot, rtA]), equals(rtRoot)));
+      test('LCCA(a, b)',
+          () => expect(ctx.findLCCA(<RuntimeState>[rtB, rtA]), equals(rtRoot)));
+      test('LCCA(b, c)',
+          () => expect(ctx.findLCCA(<RuntimeState>[rtB, rtC]), equals(rtA)));
     });
   });
 }

@@ -14,6 +14,7 @@
 // limitations under the License.
 
 import 'package:collection/collection.dart';
+import 'package:quiver/core.dart';
 import 'package:statecharts/statecharts.dart';
 
 class RuntimeState<T> implements State<T> {
@@ -26,6 +27,9 @@ class RuntimeState<T> implements State<T> {
   late final Iterable<RuntimeTransition<T>> transitions;
 
   RuntimeState(this.state, this.order, [this.parent]);
+
+  @override
+  int get hashCode => hash3(state, parent, order);
 
   @override
   String? get id => state.id;
@@ -63,6 +67,13 @@ class RuntimeState<T> implements State<T> {
   }
 
   @override
+  bool operator ==(Object other) =>
+      other is RuntimeState<T> &&
+      state == other.state &&
+      order == other.order &&
+      parent == other.parent;
+
+  @override
   void enter(T? context) => state.enter(context);
 
   @override
@@ -74,6 +85,11 @@ class RuntimeState<T> implements State<T> {
       yield* generateIterable(child);
     }
   }
+
+  @override
+  String toString() =>
+      super.toString() +
+      '(state: $state,  parent id:${parent?.id}, order: $order}';
 
   Transition<T>? transitionFor(
           {String? event,
