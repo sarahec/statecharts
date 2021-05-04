@@ -45,47 +45,43 @@ void main() {
 
   group('functions', () {
     group('ancestry', () {
-      final txa = NonEventTransition(targets: ['a']);
-      final txb = NonEventTransition(targets: ['b']);
-      final txc = NonEventTransition(targets: ['c']);
-      final txd = NonEventTransition(targets: ['d']);
-      final b = State('b', transitions: [txc]);
-      final d = State('d', transitions: [txb]);
-      final c = State('c', substates: [d], transitions: [txd]);
-      final a = State('a', substates: [b, c], transitions: [txb]);
-      final root = RootState('root', [a]);
-
-      var ctx, rtRoot, rtA, rtB, rtC;
-
-      setUp(() {
-        ctx = ExecutionContext.withRoot(root);
-        rtRoot = ctx.nodeForID('root');
-        rtA = ctx.nodeForID('a');
-        rtB = ctx.nodeForID('b');
-        rtC = ctx.nodeForID('c');
-      });
+      // final txa = NonEventTransition(targets: ['a']);
+      final txb = NonEventTransition<int>(targets: ['b']);
+      final txc = NonEventTransition<int>(targets: ['c']);
+      final txd = NonEventTransition<int>(targets: ['d']);
+      final b = State<int>('b', transitions: [txc]);
+      final d = State<int>('d', transitions: [txb]);
+      final c = State<int>('c', substates: [d], transitions: [txd]);
+      final a = State<int>('a', substates: [b, c], transitions: [txb]);
+      final root = RootState<int>('root', [a]);
+      final ctx = ExecutionContext<int>.withRoot(root);
+      final rtRoot = ctx.nodeForID('root')!;
+      final rtA = ctx.nodeForID('a')!;
+      final rtB = ctx.nodeForID('b')!;
+      final rtC = ctx.nodeForID('c')!;
 
       test(
           'ancestors(c)',
-          () => expect(
-              ctx.getProperAncestors(rtC).toList(),
-              containsAllInOrder([
-                [rtA, rtRoot]
-              ])));
+          () => expect(ctx.getProperAncestors(rtC).ids,
+              containsAllInOrder(['a', 'root'])));
 
       test(
           'ancestors(b)',
-          () => expect(
-              ctx.getProperAncestors(rtB), containsAllInOrder([rtA, rtRoot])));
+          () => expect(ctx.getProperAncestors(rtB).ids,
+              containsAllInOrder(['a', 'root'])));
 
-      test(
-          'LCCA(root)',
-          () => expect(
-              ctx.findLCCA(<RuntimeState>[rtRoot, rtA]), equals(rtRoot)));
+      test('LCCA(root)',
+          () => expect(ctx.findLCCA([rtRoot, rtA]).id, equals('root')));
       test('LCCA(a, b)',
-          () => expect(ctx.findLCCA(<RuntimeState>[rtB, rtA]), equals(rtRoot)));
-      test('LCCA(b, c)',
-          () => expect(ctx.findLCCA(<RuntimeState>[rtB, rtC]), equals(rtA)));
+          () => expect(ctx.findLCCA([rtB, rtA]).id, equals('root')));
+      test(
+          'LCCA(b, c)', () => expect(ctx.findLCCA([rtB, rtC]).id, equals('a')));
+
+      test('isDescendent(b, root)',
+          () => expect(ctx.isDescendant(rtB, rtRoot), isTrue));
+
+      test('isDescendent(root, b)',
+          () => expect(ctx.isDescendant(rtRoot, rtB), isFalse));
     });
   });
 }

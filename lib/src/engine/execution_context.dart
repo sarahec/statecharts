@@ -220,7 +220,7 @@ class ExecutionContext<T> {
   ///  True if state1 descends from state2
   @visibleForTesting
   bool isDescendant(RuntimeState<T> state1, RuntimeState<T> state2) =>
-      getProperAncestors(state2).contains(state1);
+      getProperAncestors(state1).contains(state2);
 
   @visibleForTesting
   bool isInFinalState(State<T> s) => s.isCompound
