@@ -10,28 +10,31 @@
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
+// See the License for the specific language goveRuntimeState<T>ning permissions and
 // limitations under the License.
 
 import 'dart:collection';
 
 import 'package:meta/meta.dart';
+import 'package:ordered_set/comparing.dart';
+import 'package:ordered_set/ordered_set.dart';
 import 'package:statecharts/statecharts.dart';
 
 class ExecutionContext<T> {
   final RuntimeState<T> root;
   final Map<String, Iterable<RuntimeState<T>>> historyValues;
-  final Set<RuntimeState<T>> _configuration;
+  final _configuration;
 
   final Map<String, RuntimeState<T>> _lookupMap;
 
   var _defaultHistoryContent;
 
-  final _statesToEnter = <RuntimeState<T>>{};
+  final _statesToEnter;
 
   /// Every state that requires `state.enter(context)` on its default initial state
   final _statesForDefaultEntry = <RuntimeState<T>>[];
 
+  /// Load the root node and, optionally, configure the active nodes
   @visibleForTesting
   factory ExecutionContext.forTest(RootState<T> rootNode,
           {Iterable<String>? activeIDs}) =>
@@ -44,8 +47,13 @@ class ExecutionContext<T> {
         .._buildLookupMap()
         .._loadInitialStates(rootNode.initializingTransitions);
 
-  ExecutionContext._(
-      this.root, this._configuration, this.historyValues, this._lookupMap);
+  ExecutionContext._(this.root, Iterable<RuntimeState<T>> initialConfig,
+      this.historyValues, this._lookupMap)
+      : _configuration =
+            OrderedSet<RuntimeState<T>>(Comparing.on((p) => p.order))
+              ..addAll(initialConfig),
+        _statesToEnter =
+            OrderedSet<RuntimeState<T>>(Comparing.on((p) => p.order));
 
   /// Every state that requires `state.enter(context)`
   Iterable<RuntimeState<T>> get statesToEnter => _statesToEnter;
@@ -222,7 +230,7 @@ class ExecutionContext<T> {
   bool isDescendant(RuntimeState<T> state1, RuntimeState<T> state2) =>
       getProperAncestors(state1).contains(state2);
 
-  // WARNING This has been changed from the spec, see final return
+  // NOTE: This has been changed from the spec, see final return
   @visibleForTesting
   bool isInFinalState(State<T> s) => s.isParallel
       ? s.substates.every((c) => isInFinalState(c))
@@ -268,8 +276,8 @@ class ExecutionContext<T> {
 
   Iterable<RuntimeTransition<T>> selectTransitions(String? event, T? context) {
     var enabledTransitions = <RuntimeTransition<T>>{};
-    final atomicStates = _configuration.where((s) => s.isAtomic).toList()
-      ..sort(documentOrder);
+    final atomicStates = _configuration
+        .where((s) => s.isAtomic); // ordered set in document order
     for (var state in atomicStates) {
       for (var s in [state, ...getProperAncestors(state)]) {
         for (var t in s.transitions) {
