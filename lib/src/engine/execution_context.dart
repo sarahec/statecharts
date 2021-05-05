@@ -21,7 +21,7 @@ import 'package:statecharts/statecharts.dart';
 class ExecutionContext<T> {
   final RuntimeState<T> root;
   final Map<String, Iterable<RuntimeState<T>>> historyValues;
-  final Iterable<RuntimeState<T>> _configuration;
+  final Set<RuntimeState<T>> _configuration;
 
   final Map<String, RuntimeState<T>> _lookupMap;
 
@@ -32,15 +32,17 @@ class ExecutionContext<T> {
   /// Every state that requires `state.enter(context)` on its default initial state
   final _statesForDefaultEntry = <RuntimeState<T>>[];
 
+  @visibleForTesting
+  factory ExecutionContext.forTest(RootState<T> rootNode,
+          {Iterable<String>? activeIDs}) =>
+      ExecutionContext._(RuntimeState.wrapSubtree(rootNode), {}, {}, {})
+        .._buildLookupMap()
+        .._selectIDs(activeIDs);
+
   factory ExecutionContext.initial(RootState<T> rootNode) =>
       ExecutionContext._(RuntimeState.wrapSubtree(rootNode), {}, {}, {})
         .._buildLookupMap()
         .._loadInitialStates(rootNode.initializingTransitions);
-
-  @visibleForTesting
-  factory ExecutionContext.withRoot(RootState<T> rootNode) =>
-      ExecutionContext._(RuntimeState.wrapSubtree(rootNode), {}, {}, {})
-        .._buildLookupMap();
 
   ExecutionContext._(
       this.root, this._configuration, this.historyValues, this._lookupMap);
@@ -112,8 +114,6 @@ class ExecutionContext<T> {
       }
     }
   }
-
-  buildLookupMap() {}
 
   void computeEntrySet(Iterable<RuntimeTransition<T>> transitions) {
     for (var t in transitions) {
@@ -222,12 +222,13 @@ class ExecutionContext<T> {
   bool isDescendant(RuntimeState<T> state1, RuntimeState<T> state2) =>
       getProperAncestors(state1).contains(state2);
 
+  // WARNING This has been changed from the spec, see final return
   @visibleForTesting
-  bool isInFinalState(State<T> s) => s.isCompound
-      ? s.substates.any((c) => c.isFinal && _configuration.contains(c))
-      : s.isParallel
-          ? s.substates.every((c) => isInFinalState(c))
-          : false;
+  bool isInFinalState(State<T> s) => s.isParallel
+      ? s.substates.every((c) => isInFinalState(c))
+      : s.isCompound
+          ? s.substates.any((c) => c.isFinal && _configuration.contains(c))
+          : s.isFinal && _configuration.contains(s); // spec returns false here
 
   @visibleForTesting
   RuntimeState<T>? nodeForID(String id) => _lookupMap[id];
@@ -261,9 +262,9 @@ class ExecutionContext<T> {
     return filteredTransitions;
   }
 
-// The purpose of this procedure is to add to statesToEnter 'state' and any of its descendants that the state machine will end up entering when it enters 'state'. (N.B. If 'state' is a history pseudo-state, we dereference it and add the history value instead.) Note that this procedure permanently modifies both statesToEnter and statesForDefaultEntry.
-//
-// First, If state is a history state then add either the history values associated with state or state's default target to statesToEnter. Then (since the history value may not be an immediate descendant of 'state's parent) add any ancestors between the history value and state's parent. Else (if state is not a history state), add state to statesToEnter. Then if state is a compound state, add state to statesForDefaultEntry and recursively call addStatesToEnter on its default initial state(s). Then, since the default initial states may not be children of 'state', add any ancestors between the default initial states and 'state'. Otherwise, if state is a parallel state, recursively call addStatesToEnter on any of its child states that don't already have a descendant on statesToEnter.
+  // The purpose of this procedure is to add to statesToEnter 'state' and any of its descendants that the state machine will end up entering when it enters 'state'. (N.B. If 'state' is a history pseudo-state, we dereference it and add the history value instead.) Note that this procedure permanently modifies both statesToEnter and statesForDefaultEntry.
+  //
+  // First, If state is a history state then add either the history values associated with state or state's default target to statesToEnter. Then (since the history value may not be an immediate descendant of 'state's parent) add any ancestors between the history value and state's parent. Else (if state is not a history state), add state to statesToEnter. Then if state is a compound state, add state to statesForDefaultEntry and recursively call addStatesToEnter on its default initial state(s). Then, since the default initial states may not be children of 'state', add any ancestors between the default initial states and 'state'. Otherwise, if state is a parallel state, recursively call addStatesToEnter on any of its child states that don't already have a descendant on statesToEnter.
 
   Iterable<RuntimeTransition<T>> selectTransitions(String? event, T? context) {
     var enabledTransitions = <RuntimeTransition<T>>{};
@@ -284,7 +285,7 @@ class ExecutionContext<T> {
     return enabledTransitions;
   }
 
-// Add to statesToEnter any ancestors of 'state' up to, but not including, 'ancestor' that must be entered in order to enter 'state'. If any of these ancestor states is a parallel state, we must fill in its descendants as well.
+  // Add to statesToEnter any ancestors of 'state' up to, but not including, 'ancestor' that must be entered in order to enter 'state'. If any of these ancestor states is a parallel state, we must fill in its descendants as well.
 
   void _buildLookupMap() {
     root.toIterable
@@ -298,5 +299,13 @@ class ExecutionContext<T> {
         RuntimeTransition<T>(t, root)..attachTargetStates(_lookupMap)
     ];
     computeEntrySet(runtimeTransitions);
+  }
+
+  void _selectIDs(intialIDs) {
+    for (var id in intialIDs ?? []) {
+      var node = _lookupMap[id];
+      if (node == null) continue;
+      _configuration.add(node);
+    }
   }
 }

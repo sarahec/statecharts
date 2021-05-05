@@ -49,16 +49,22 @@ void main() {
       final txb = NonEventTransition<int>(targets: ['b']);
       final txc = NonEventTransition<int>(targets: ['c']);
       final txd = NonEventTransition<int>(targets: ['d']);
-      final b = State<int>('b', transitions: [txc]);
+      final p1 = State<int>('p1', isFinal: true);
+      final p2 = State<int>('p2', isFinal: true);
+      final b = State<int>('b',
+          transitions: [txc], substates: [p1, p2], isParallel: true);
       final d = State<int>('d', transitions: [txb]);
       final c = State<int>('c', substates: [d], transitions: [txd]);
       final a = State<int>('a', substates: [b, c], transitions: [txb]);
+
       final root = RootState<int>('root', [a]);
-      final ctx = ExecutionContext<int>.withRoot(root);
+      final ctx =
+          ExecutionContext<int>.forTest(root, activeIDs: ['b', 'p1', 'p2']);
       final rtRoot = ctx.nodeForID('root')!;
       final rtA = ctx.nodeForID('a')!;
       final rtB = ctx.nodeForID('b')!;
       final rtC = ctx.nodeForID('c')!;
+      final rtP2 = ctx.nodeForID('p2')!;
 
       test(
           'ancestors(c)',
@@ -82,6 +88,16 @@ void main() {
 
       test('isDescendent(root, b)',
           () => expect(ctx.isDescendant(rtRoot, rtB), isFalse));
+
+      test('isInFinalState(non-final probe)',
+          () => expect(ctx.isInFinalState(rtA), isFalse));
+
+      // N.B.We're testing one child pf a parallel state.
+      test('isInFinalState(final, atomic)',
+          () => expect(ctx.isInFinalState(rtP2), isTrue));
+
+      test('isInFinalState(parallel, all children final)',
+          () => expect(ctx.isInFinalState(rtP2), isTrue));
     });
   });
 }
