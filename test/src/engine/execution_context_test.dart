@@ -43,8 +43,8 @@ void main() {
     }, skip: true);
   });
 
-  group('functions', () {
-    group('ancestry', () {
+  group('implementations', () {
+    group('utilities', () {
       // final txa = NonEventTransition(targets: ['a']);
       final txb = NonEventTransition<int>(targets: ['b']);
       final txc = NonEventTransition<int>(targets: ['c']);
@@ -60,11 +60,11 @@ void main() {
       final root = RootState<int>('root', [a]);
       final ctx =
           ExecutionContext<int>.forTest(root, activeIDs: ['b', 'p1', 'p2']);
-      final rtRoot = ctx.nodeForID('root')!;
-      final rtA = ctx.nodeForID('a')!;
-      final rtB = ctx.nodeForID('b')!;
-      final rtC = ctx.nodeForID('c')!;
-      final rtP2 = ctx.nodeForID('p2')!;
+      final rtRoot = ctx['root']!;
+      final rtA = ctx['a']!;
+      final rtB = ctx['b']!;
+      final rtC = ctx['c']!;
+      final rtP2 = ctx['p2']!;
 
       test(
           'ancestors(c)',

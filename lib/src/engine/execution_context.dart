@@ -58,6 +58,8 @@ class ExecutionContext<T> {
   /// Every state that requires `state.enter(context)`
   Iterable<RuntimeState<T>> get statesToEnter => _statesToEnter;
 
+  RuntimeState<T>? operator [](String id) => _lookupMap[id];
+
   @visibleForTesting
   void addAncestorStatesToEnter(state, ancestor, statesToEnter,
       statesForDefaultEntry, defaultHistoryContent) {
@@ -237,9 +239,6 @@ class ExecutionContext<T> {
       : s.isCompound
           ? s.substates.any((c) => c.isFinal && _configuration.contains(c))
           : s.isFinal && _configuration.contains(s); // spec returns false here
-
-  @visibleForTesting
-  RuntimeState<T>? nodeForID(String id) => _lookupMap[id];
 
   Set<RuntimeTransition<T>> removeConflictingTransitions(
       Iterable<RuntimeTransition<T>> enabledTransitions) {
