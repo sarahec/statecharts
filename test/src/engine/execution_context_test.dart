@@ -46,9 +46,9 @@ void main() {
   group('implementations', () {
     group('utilities', () {
       // final txa = NonEventTransition(targets: ['a']);
-      final txb = NonEventTransition<int>(targets: ['b']);
-      final txc = NonEventTransition<int>(targets: ['c']);
-      final txd = NonEventTransition<int>(targets: ['d']);
+      final txb = Transition<int>(targets: ['b']);
+      final txc = Transition<int>(targets: ['c']);
+      final txd = Transition<int>(targets: ['d']);
       final p1 = State<int>('p1', isFinal: true);
       final p2 = State<int>('p2', isFinal: true);
       final b = State<int>('b',

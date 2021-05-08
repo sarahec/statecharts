@@ -30,7 +30,7 @@ class EventTransition<T> extends Transition<T> {
       required this.event,
       Condition<T>? condition,
       String type = 'external'})
-      : super(targets, condition, type);
+      : super._(targets, condition, type);
 
   @override
   bool matches(
@@ -68,7 +68,7 @@ class NonEventTransition<T> extends Transition<T> {
       this.after,
       Condition<T>? condition,
       String type = 'external'})
-      : super(targets, condition, type);
+      : super._(targets, condition, type);
 
   @override
   bool matches(
@@ -96,7 +96,19 @@ abstract class Transition<T> {
   final Iterable<String> targets;
   final String type;
 
-  const Transition(this.targets, this.condition, this.type)
+  factory Transition(
+          {Iterable<String> targets = const [],
+          String? event,
+          Condition<T>? condition,
+          Duration? after,
+          String type = 'external'}) =>
+      event != null
+          ? EventTransition<T>(
+              event: event, targets: targets, condition: condition, type: type)
+          : NonEventTransition<T>(
+              after: after, targets: targets, condition: condition, type: type);
+
+  const Transition._(this.targets, this.condition, this.type)
       : assert(type == 'internal' || type == 'external',
             'transition type must be internal or external, found $type');
 
