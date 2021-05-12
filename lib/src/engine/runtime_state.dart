@@ -86,6 +86,12 @@ class RuntimeState<T> implements State<T> {
     }
   }
 
+  RuntimeTransition<T>? getTransition(String toState) =>
+      transitions.firstWhereOrNull((t) => t.targets.contains(toState));
+
+  bool hasTransition(String toState) =>
+      transitions.any((t) => t.targets.contains(toState));
+
   @override
   String toString() =>
       super.toString() +

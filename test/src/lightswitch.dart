@@ -23,16 +23,16 @@ class Lightbulb {
 const turnOn = 'turnOn';
 const turnOff = 'turnOff';
 
-final transitionOn = EventTransition<Lightbulb>(
-    targets: ['on'], condition: (b) => b.cycleCount < 10, event: turnOn);
-final transitionOff =
-    const EventTransition<Lightbulb>(targets: ['off'], event: turnOff);
 final stateOff = State<Lightbulb>('off',
     isInitial: true,
-    transitions: [transitionOn],
+    transitions: [
+      Transition<Lightbulb>(targets: ['on'], event: turnOn)
+    ],
     onEntry: (b) => b.isOn = false);
 final stateOn = State<Lightbulb>('on',
-    transitions: [transitionOff],
+    transitions: [
+      Transition<Lightbulb>(targets: ['off'], event: turnOff)
+    ],
     onEntry: (b) => b.isOn = true,
     onExit: (b) {
       b.cycleCount += 1;

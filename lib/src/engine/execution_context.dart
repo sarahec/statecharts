@@ -15,6 +15,7 @@
 
 import 'dart:collection';
 
+import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 import 'package:ordered_set/comparing.dart';
 import 'package:ordered_set/ordered_set.dart';
@@ -215,6 +216,13 @@ class ExecutionContext<T> {
     }
   }
 
+  RuntimeTransition<T>? getTransition(String toState, {String? inside}) =>
+      (inside != null
+              ? _lookupMap[inside]
+              : root.toIterable
+                  .firstWhereOrNull((s) => s.hasTransition(toState)))
+          ?.getTransition(toState);
+
   @visibleForTesting
   RuntimeState<T>? getTransitionDomain(RuntimeTransition<T> t) {
     final tstates = getEffectiveTargetStates(t);
@@ -227,18 +235,22 @@ class ExecutionContext<T> {
     return findLCCA([t.source, ...tstates]);
   }
 
+  // NOTE: This has been changed from the spec, see final return
   ///  True if state1 descends from state2
   @visibleForTesting
   bool isDescendant(RuntimeState<T> state1, RuntimeState<T> state2) =>
-      getProperAncestors(state1).contains(state2);
+      getProperAncestors(state1).contains(state2); // spec returns false here
 
-  // NOTE: This has been changed from the spec, see final return
   @visibleForTesting
   bool isInFinalState(State<T> s) => s.isParallel
       ? s.substates.every((c) => isInFinalState(c))
       : s.isCompound
           ? s.substates.any((c) => c.isFinal && _configuration.contains(c))
-          : s.isFinal && _configuration.contains(s); // spec returns false here
+          : s.isFinal && _configuration.contains(s);
+
+  // The purpose of this procedure is to add to statesToEnter 'state' and any of its descendants that the state machine will end up entering when it enters 'state'. (N.B. If 'state' is a history pseudo-state, we dereference it and add the history value instead.) Note that this procedure permanently modifies both statesToEnter and statesForDefaultEntry.
+  //
+  // First, If state is a history state then add either the history values associated with state or state's default target to statesToEnter. Then (since the history value may not be an immediate descendant of 'state's parent) add any ancestors between the history value and state's parent. Else (if state is not a history state), add state to statesToEnter. Then if state is a compound state, add state to statesForDefaultEntry and recursively call addStatesToEnter on its default initial state(s). Then, since the default initial states may not be children of 'state', add any ancestors between the default initial states and 'state'. Otherwise, if state is a parallel state, recursively call addStatesToEnter on any of its child states that don't already have a descendant on statesToEnter.
 
   Set<RuntimeTransition<T>> removeConflictingTransitions(
       Iterable<RuntimeTransition<T>> enabledTransitions) {
@@ -268,10 +280,6 @@ class ExecutionContext<T> {
     }
     return filteredTransitions;
   }
-
-  // The purpose of this procedure is to add to statesToEnter 'state' and any of its descendants that the state machine will end up entering when it enters 'state'. (N.B. If 'state' is a history pseudo-state, we dereference it and add the history value instead.) Note that this procedure permanently modifies both statesToEnter and statesForDefaultEntry.
-  //
-  // First, If state is a history state then add either the history values associated with state or state's default target to statesToEnter. Then (since the history value may not be an immediate descendant of 'state's parent) add any ancestors between the history value and state's parent. Else (if state is not a history state), add state to statesToEnter. Then if state is a compound state, add state to statesForDefaultEntry and recursively call addStatesToEnter on its default initial state(s). Then, since the default initial states may not be children of 'state', add any ancestors between the default initial states and 'state'. Otherwise, if state is a parallel state, recursively call addStatesToEnter on any of its child states that don't already have a descendant on statesToEnter.
 
   Iterable<RuntimeTransition<T>> selectTransitions(String? event, T? context) {
     var enabledTransitions = <RuntimeTransition<T>>{};
