@@ -17,7 +17,7 @@ import 'package:collection/collection.dart';
 import 'package:quiver/core.dart';
 import 'package:statecharts/statecharts.dart';
 
-class RuntimeState<T> implements State<T> {
+class RuntimeState<T> implements State<T>, Comparable {
   final State<T> state;
   final RuntimeState<T>? parent;
   final int order;
@@ -34,8 +34,8 @@ class RuntimeState<T> implements State<T> {
   @override
   String? get id => state.id;
 
-  @override
-  State<T> get initialSubstate => state.initialSubstate;
+  // @override
+  // State<T> get initialSubstate => state.initialSubstate;
 
   @override
   bool get isAtomic => state.isAtomic;
@@ -48,8 +48,10 @@ class RuntimeState<T> implements State<T> {
 
   bool get isHistoryState => state is HistoryState<T>;
 
+/*
   @override
   bool get isInitial => state.isInitial;
+  */
 
   @override
   bool get isParallel => state.isParallel;
@@ -135,4 +137,19 @@ class RuntimeState<T> implements State<T> {
     }
     return wrappedRoot;
   }
+
+  @override
+  int compareTo(other) => order.compareTo(other.order);
+
+  @override
+  Iterable<String>? get initialRefs => state.initialRefs;
+
+  @override
+  // TODO: implement initialTransition
+  Transition<T>? get initialTransition => throw UnimplementedError();
+
+  @override
+  // TODO: implement initializingTransitions
+  Iterable<Transition<T>> get initializingTransitions =>
+      throw UnimplementedError();
 }

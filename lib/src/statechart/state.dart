@@ -29,20 +29,14 @@ class HistoryState<T> extends State<T> {
 }
 
 class RootState<T> extends State<T> {
-  /// Defines the substate to use initially (`<initial>` child)
-  final Transition<T>? initialTransition;
-
-  /// Space-seperated list of initial state IDs (`initial` attribute)
-  final String? initialRefs;
-
   RootState(id, substates,
       {transitions,
       onEntry,
       onExit,
       isInitial = false,
       isFinal = false,
-      this.initialTransition,
-      this.initialRefs})
+      initialTransition,
+      Iterable<String>? initialRefs})
       : assert(substates?.isNotEmpty, 'At least one substate required'),
         assert(
             (initialRefs == null && initialTransition == null) ||
@@ -52,32 +46,15 @@ class RootState<T> extends State<T> {
             transitions: transitions ?? [],
             onEntry: onEntry,
             onExit: onExit,
-            isInitial: isInitial,
+            initialRefs: initialRefs,
+            initialTransition: initialTransition,
             isFinal: isFinal,
             substates: substates);
-
-  Iterable<Transition<T>> get initializingTransitions {
-    if (initialTransition != null) {
-      return [initialTransition!];
-    }
-    if (initialRefs != null) {
-      return initialRefs!
-          .split(' ')
-          .map((id) => NonEventTransition<T>(targets: [id]));
-    }
-    // If nothing was specified, default to the first child
-    return [
-      NonEventTransition<T>(targets: [substates.first.id!])
-    ];
-  }
 }
 
 class State<T> {
   /// Unique identifier within its container
   final String? id;
-
-  /// Declares this to be an initial state
-  final bool isInitial;
 
   /// Declares this to be a final state
   final bool isFinal;
@@ -97,21 +74,31 @@ class State<T> {
   /// Action to be performed when this state or container is exited
   final Action<T>? onExit;
 
+  final Iterable<String>? initialRefs;
+
+  final Transition<T>? initialTransition;
+
+  Iterable<Transition<T>> get initializingTransitions =>
+      initialTransition != null
+          ? [initialTransition!]
+          : initialRefs?.map((ref) => Transition<T>(targets: [ref])) ??
+              [
+                Transition<T>(targets: [substates.first.id!])
+              ];
+
   State(this.id,
       {this.transitions = const [],
       this.onEntry,
       this.onExit,
-      this.isInitial = false,
       this.isFinal = false,
       this.isParallel = false,
-      this.substates = const []});
+      this.substates = const [],
+      this.initialRefs = const [],
+      this.initialTransition});
 
   @override
   int get hashCode =>
-      hashObjects([id, onEntry, onExit, transitions, isInitial, isFinal]);
-
-  State<T> get initialSubstate =>
-      substates.firstWhere((s) => s.isInitial, orElse: () => substates.first);
+      hashObjects([id, onEntry, onExit, transitions, /* isInitial, */ isFinal]);
 
   bool get isAtomic => substates.isEmpty;
 
@@ -121,14 +108,14 @@ class State<T> {
   bool operator ==(Object other) =>
       other is State &&
       id == other.id &&
-      isInitial == other.isInitial &&
       isFinal == other.isFinal &&
       isParallel == other.isParallel &&
       onEntry == other.onEntry &&
       onExit == other.onExit &&
+      initialTransition == other.initialTransition &&
       IterableEquality().equals(transitions, other.transitions) &&
       IterableEquality().equals(substates, other.substates) &&
-      isInitial == other.isInitial;
+      IterableEquality().equals(initialRefs, other.initialRefs);
 
   void enter(T? context) {
     if (onEntry != null && context != null) onEntry!(context);

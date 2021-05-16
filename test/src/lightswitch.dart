@@ -24,7 +24,6 @@ const turnOn = 'turnOn';
 const turnOff = 'turnOff';
 
 final stateOff = State<Lightbulb>('off',
-    isInitial: true,
     transitions: [
       Transition<Lightbulb>(targets: ['on'], event: turnOn)
     ],
@@ -38,17 +37,15 @@ final stateOn = State<Lightbulb>('on',
       b.cycleCount += 1;
     });
 
-final lightswitch = RootState<Lightbulb>(
-  'lightswitch',
-  [
-    stateOff,
-    stateOn,
-  ],
-);
+final lightswitch = RootState<Lightbulb>('lightswitch', [
+  stateOff,
+  stateOn,
+], initialRefs: [
+  'off'
+]);
 
-final countedLightswitch = State<Lightbulb>('lightswitch2', substates: [
+final countedLightswitch = RootState<Lightbulb>('lightswitch2', [
   State<Lightbulb>('off',
-      isInitial: true,
       transitions: [
         EventTransition<Lightbulb>(
             targets: ['on'],
@@ -64,4 +61,6 @@ final countedLightswitch = State<Lightbulb>('lightswitch2', substates: [
       onExit: (b) {
         b.cycleCount += 1;
       }),
+], initialRefs: [
+  'off'
 ]);
