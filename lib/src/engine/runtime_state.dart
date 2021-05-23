@@ -120,8 +120,9 @@ class RuntimeState<T> implements State<T>, Comparable {
 
     RuntimeState<T> _wrap(state, parent) {
       final wrapped = RuntimeState<T>(state, index++, parent);
+      var position = 0;
       wrapped.transitions = [
-        for (var t in state.transitions) RuntimeTransition(t, wrapped)
+        for (var t in state.transitions) RuntimeTransition(t, wrapped, position++)
       ];
       transitions.addAll(wrapped.transitions);
       wrapped.substates = [

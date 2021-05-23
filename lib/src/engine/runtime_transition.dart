@@ -18,9 +18,11 @@ import 'package:statecharts/statecharts.dart';
 class RuntimeTransition<T> implements Transition<T> {
   final Transition<T> transition;
   final RuntimeState<T> source;
+  /// Offset within the parent's transitions. -1 if unspecified.
+  final int position;
   late final Iterable<RuntimeState<T>> targetStates;
 
-  RuntimeTransition(this.transition, this.source);
+  RuntimeTransition(this.transition, this.source, [this.position = -1]);
 
   @override
   Condition<T>? get condition => transition.condition;

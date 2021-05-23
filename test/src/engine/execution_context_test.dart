@@ -19,6 +19,7 @@ import 'package:test/test.dart';
 import '../lightswitch.dart';
 
 void main() {
+  /*
   group('initialization', () {
     final a = State<void>('a');
     final b = State<void>('b');
@@ -27,7 +28,7 @@ void main() {
       final root = RootState<void>('root', [a]);
       final executionContext = ExecutionContext.initial(root);
       expect(executionContext, isNotNull);
-      expect(executionContext.statesToEnter.ids, contains('a'));
+      expect(executionContext.selectInitialStates().ids, equals(['a']));
     }, skip: true);
 
     test('selects from initialRefs', () {
@@ -44,6 +45,7 @@ void main() {
       expect(executionContext.statesToEnter.ids, containsAll(['root', 'b']));
     }, skip: true);
   });
+  */
 
   group('utilities', () {
     // final txa = NonEventTransition(targets: ['a']);
@@ -127,6 +129,10 @@ void main() {
     */
   });
 
+  group('transitions', () {
+    test(description, body)
+  })
+
   // runtime segment
   group('state selection (no history)', () {
     test('getEffectiveTargetStates', () {
@@ -142,7 +148,7 @@ void main() {
       final ctx = ExecutionContext.forTest(lightswitch);
       final transitionOn = ctx.findTransition('on')!;
       ctx.computeEntrySet([transitionOn]);
-      expect(ctx.statesToEnter.ids, equals(['on']));
+      // expect(ctx.statesToEnter.ids, equals(['on']));
       expect(ctx.statesForDefaultEntry.ids, equals(['on']));
     }, skip: true);
   });

@@ -23,10 +23,11 @@ import 'package:statecharts/statecharts.dart';
 
 class ExecutionContext<T> {
   final RuntimeState<T> root;
-  final Map<String, Iterable<RuntimeState<T>>> historyValues;
-  final _configuration;
+  @visibleForTesting
+  final historyValues = <String, Iterable<RuntimeState<T>>>{};
+  // final _configuration;
 
-  final Map<String, RuntimeState<T>> _lookupMap;
+  final _lookupMap = <String, RuntimeState<T>>{};
 
   @Deprecated('use local')
   final defaultHistoryContent = 0;
@@ -34,40 +35,25 @@ class ExecutionContext<T> {
 
   var _statesToEnter;
 
-  /// Every state that requires `state.enter(context)` on its default initial state
-  var _statesForDefaultEntry;
-
   /// Load the root node and, optionally, configure the active nodes
   @visibleForTesting
   factory ExecutionContext.forTest(RootState<T> rootNode,
           {Iterable<String>? activeIDs}) =>
-      ExecutionContext._(RuntimeState.wrapSubtree(rootNode), {}, {}, {})
-        .._buildLookupMap()
-        .._initEntrySet()
-        .._selectIDs(activeIDs);
+      ExecutionContext._(RuntimeState.wrapSubtree(rootNode)).._buildLookupMap();
 
   factory ExecutionContext.initial(RootState<T> rootNode) =>
-      ExecutionContext._(RuntimeState.wrapSubtree(rootNode), {}, {}, {})
+      ExecutionContext._(RuntimeState.wrapSubtree(rootNode))
         .._buildLookupMap()
-        .._loadInitialStates(rootNode.initializingTransitions);
+        ..selectInitialStates(rootNode.initializingTransitions);
 
-  ExecutionContext._(this.root, Iterable<RuntimeState<T>> initialConfig,
-      this.historyValues, this._lookupMap)
-      : _configuration =
-            OrderedSet<RuntimeState<T>>(Comparing.on((p) => p.order))
-              ..addAll(initialConfig);
+  ExecutionContext._(this.root);
 
-  /// Every state that requires `state.enter(context)`
-  @visibleForTesting
-  Iterable<RuntimeState<T>> get statesToEnter => _statesToEnter;
-
-  /// Every state that will contribute its default entry state to the selected states
   @visibleForTesting
   Iterable<RuntimeState<T>> get statesForDefaultEntry => _statesToEnter;
 
-  /// Finds a state by its id
+  /// Shorthand for [findState]
   @visibleForTesting
-  RuntimeState<T>? operator [](String id) => _lookupMap[id];
+  RuntimeState<T>? operator [](String? id) => findState(id);
 
   @visibleForTesting
   void addAncestorStatesToEnter(
@@ -144,18 +130,11 @@ class ExecutionContext<T> {
     */
   }
 
-  Set<RuntimeState<T>> computeExitSet(transitions) {
-    // ignore: prefer_collection_literals
-    final statesToExit = LinkedHashSet<RuntimeState<T>>();
-    for (var t in transitions) {
-      if (t.target != null) {
-        final domain = getTransitionDomain(t);
-        for (var s in _configuration) {
-          if (isDescendant(s, domain!)) {
-            statesToExit.add(s);
-          }
-        }
-      }
+  Set<RuntimeState<T>> computeExitSet(transitions, activeStates) {
+    final statesToExit = <RuntimeState<T>>{};
+    for (var t in transitions.where((probe) => probe.target != null)) {
+      final domain = getTransitionDomain(t)!;
+      statesToExit.addAll(activeStates.where((s) => isDescendant(s, domain)));
     }
     return statesToExit;
   }
@@ -231,28 +210,30 @@ class ExecutionContext<T> {
       getProperAncestors(state1).contains(state2);
 
   @visibleForTesting
-  bool isInFinalState(State<T> s) => s.isParallel
-      ? s.substates.every((c) => isInFinalState(c))
+  bool isInFinalState(State<T> s, activeStates) => s.isParallel
+      ? s.substates.every((c) => isInFinalState(c, activeStates))
       : s.isCompound
-          ? s.substates.any((c) => c.isFinal && _configuration.contains(c))
-          : s.isFinal && _configuration.contains(s);
+          ? s.substates.any((c) => c.isFinal && activeStates.contains(c))
+          : s.isFinal && activeStates.contains(s);
 
   // NOTE: This has been changed from the spec, see final return
-  Set<RuntimeTransition<T>> removeConflictingTransitions(
-      Iterable<RuntimeTransition<T>> enabledTransitions) {
-    final filteredTransitions = <RuntimeTransition<T>>{};
-    //toList sorts the transitions in the order of the states that selected them
+  @visibleForTesting
+  Iterable<RuntimeTransition<T>> removeConflictingTransitions(
+      Iterable<RuntimeTransition<T>> enabledTransitions,
+      Iterable<RuntimeState<T>> activeStates) {
+    final filteredTransitions =
+        OrderedSet<RuntimeTransition<T>>(Comparing.on((t) => t.source.order));
     for (var t1 in enabledTransitions) {
       var t1Preempted = false;
       final transitionsToRemove = <RuntimeTransition<T>>{};
       for (var t2 in filteredTransitions) {
-        if (computeExitSet([t1])
-            .intersection(computeExitSet([t2]))
+        if (computeExitSet([t1], activeStates)
+            .intersection(computeExitSet([t2], activeStates))
             .isNotEmpty) {
           if (isDescendant(t1.source, t2.source)) {
             transitionsToRemove.add(t2);
           } else {
-            t1Preempted = true;
+            t1Preempted = true; // t2 overrides t1
             break;
           }
         }
@@ -267,10 +248,12 @@ class ExecutionContext<T> {
     return filteredTransitions;
   } // spec returns false here
 
-  Iterable<RuntimeTransition<T>> selectTransitions(String? event, T? context) {
-    var enabledTransitions = <RuntimeTransition<T>>{};
-    final atomicStates = _configuration
-        .where((s) => s.isAtomic); // ordered set in document order
+  Iterable<RuntimeTransition<T>> selectTransitions(
+      String? event, T? context, Iterable<RuntimeState<T>> activeStates) {
+    var enabledTransitions =
+        OrderedSet<RuntimeTransition<T>>(Comparing.on((t) => t.source.order));
+    final atomicStates =
+        activeStates.where((s) => s.isAtomic); // ordered set in document order
     for (var state in atomicStates) {
       for (var s in [state, ...getProperAncestors(state)]) {
         for (var t in s.transitions) {
@@ -282,8 +265,7 @@ class ExecutionContext<T> {
         }
       }
     }
-    enabledTransitions = removeConflictingTransitions(enabledTransitions);
-    return enabledTransitions;
+    return removeConflictingTransitions(enabledTransitions, activeStates);
   }
 
   // The purpose of this procedure is to add to statesToEnter 'state' and any of its descendants that the state machine will end up entering when it enters 'state'. (N.B. If 'state' is a history pseudo-state, we dereference it and add the history value instead.) Note that this procedure permanently modifies both statesToEnter and statesForDefaultEntry.
@@ -291,6 +273,7 @@ class ExecutionContext<T> {
   // First, If state is a history state then add either the history values associated with state or state's default target to statesToEnter. Then (since the history value may not be an immediate descendant of 'state's parent) add any ancestors between the history value and state's parent. Else (if state is not a history state), add state to statesToEnter. Then if state is a compound state, add state to statesForDefaultEntry and recursively call addStatesToEnter on its default initial state(s). Then, since the default initial states may not be children of 'state', add any ancestors between the default initial states and 'state'. Otherwise, if state is a parallel state, recursively call addStatesToEnter on any of its child states that don't already have a descendant on statesToEnter.
 
   void _buildLookupMap() {
+    assert(_lookupMap.isEmpty); // should only be called once
     root.toIterable
         .where((s) => s.id != null)
         .forEach((state) => _lookupMap[state.id!] = state);
@@ -308,22 +291,14 @@ class ExecutionContext<T> {
           }
         } else {
           for (var t in s.transitions) {
-            yield* getEffectiveTargetStates(t);
+            yield* _getEffectiveTargetStates(t);
           }
         }
       }
     }
   }
 
-  // Add to statesToEnter any ancestors of 'state' up to, but not including, 'ancestor' that must be entered in order to enter 'state'. If any of these ancestor states is a parallel state, we must fill in its descendants as well.
-
-  void _initEntrySet() {
-    _statesToEnter = OrderedSet<RuntimeState<T>>(Comparing.on((p) => p.order));
-    _statesForDefaultEntry =
-        OrderedSet<RuntimeState<T>>(Comparing.on((p) => p.order));
-  }
-
-  void _loadInitialStates(Iterable<Transition<T>> transitions) {
+  void selectInitialStates(Iterable<Transition<T>> transitions) {
     final runtimeTransitions = [
       for (var t in transitions)
         RuntimeTransition<T>(t, root)..attachTargetStates(_lookupMap)
@@ -331,11 +306,8 @@ class ExecutionContext<T> {
     computeEntrySet(runtimeTransitions);
   }
 
-  void _selectIDs(intialIDs) {
-    for (var id in intialIDs ?? []) {
-      var node = _lookupMap[id];
-      if (node == null) continue;
-      _configuration.add(node);
-    }
-  }
+  Iterable<RuntimeState<T>> selectStates([Iterable<String>? ids]) => ids == null
+      ? []
+      : (OrderedSet<RuntimeState<T>>(Comparing.on((s) => s.order))
+        ..addAll(ids.map((id) => _lookupMap[id]!)));
 }
