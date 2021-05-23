@@ -13,8 +13,6 @@
 // See the License for the specific language goveRuntimeState<T>ning permissions and
 // limitations under the License.
 
-import 'dart:collection';
-
 import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 import 'package:ordered_set/comparing.dart';
@@ -31,7 +29,6 @@ class ExecutionContext<T> {
 
   @Deprecated('use local')
   final defaultHistoryContent = 0;
-  var _defaultHistoryContent;
 
   var _statesToEnter;
 
@@ -58,7 +55,7 @@ class ExecutionContext<T> {
   @visibleForTesting
   void addAncestorStatesToEnter(
       RuntimeState<T> state, RuntimeState<T>? ancestor) {
-    for (var anc in getProperAncestors(state, ancestor)) {
+    for (var anc in state.ancestors(upTo: ancestor)) {
       _statesToEnter.add(anc);
       if (anc.isParallel) {
         for (var child in getChildStates(anc)) {
@@ -147,7 +144,7 @@ class ExecutionContext<T> {
   /// This finds the minimal subtree contaning a set of states.
   @visibleForTesting
   RuntimeState<T> findLCCA(Iterable<RuntimeState<T>> stateList) => stateList
-      .map((s) => Set.of(getProperAncestors(s)))
+      .map((s) => Set.of(s.ancestors()))
       .reduce((a, b) => a.intersection(b))
       .where((s) => s.isCompound)
       .reduce((a, b) => a.order >= b.order ? a : b);
@@ -169,28 +166,10 @@ class ExecutionContext<T> {
       OrderedSet(Comparing.on((p) => p.order))
         ..addAll(_getEffectiveTargetStates(transition));
 
-  /// Finds the ancestors of a state
-  ///
-  /// If `toState` is null, returns the set of all ancestors of `fromState` up
-  /// to (and including) `rootState`. If `toState` is not null, return all
-  /// ancestors up to but not including `toState`.
-  ///
-  /// Special case: the ancestor of the root state is itself (returned once).
-  @visibleForTesting
-  Iterable<RuntimeState<T>> getProperAncestors(RuntimeState<T> fromState,
-      [RuntimeState<T>? toState]) sync* {
-    if (fromState == root) {
-      yield fromState;
-      return;
-    }
-    if (toState != null && fromState == toState) return;
-    var probe = fromState.parent;
-    while (probe != null && toState != probe) {
-      yield probe;
-      if (probe == root) break;
-      probe = probe.parent;
-    }
-  }
+  // @visibleForTesting
+  // Iterable<RuntimeState<T>> getProperAncestors(RuntimeState<T> fromState,
+  //         [RuntimeState<T>? toState]) =>
+  //     fromState.ancestors(toState);
 
   @visibleForTesting
   RuntimeState<T>? getTransitionDomain(RuntimeTransition<T> t) {
@@ -207,7 +186,7 @@ class ExecutionContext<T> {
   ///  True if state1 descends from state2
   @visibleForTesting
   bool isDescendant(RuntimeState<T> state1, RuntimeState<T> state2) =>
-      getProperAncestors(state1).contains(state2);
+      state1.ancestors().contains(state2);
 
   @visibleForTesting
   bool isInFinalState(State<T> s, activeStates) => s.isParallel
@@ -255,7 +234,7 @@ class ExecutionContext<T> {
     final atomicStates =
         activeStates.where((s) => s.isAtomic); // ordered set in document order
     for (var state in atomicStates) {
-      for (var s in [state, ...getProperAncestors(state)]) {
+      for (var s in [state, ...state.ancestors()]) {
         for (var t in s.transitions) {
           // n.b. assumes sorting in document order for transitions
           if (t.matches(anEvent: event, context: context)) {

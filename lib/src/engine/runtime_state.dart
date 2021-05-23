@@ -28,14 +28,45 @@ class RuntimeState<T> implements State<T>, Comparable {
 
   RuntimeState(this.state, this.order, [this.parent]);
 
+  /// Finds the ancestors of a state
+  ///
+  /// If [upTo] is null, returns the set of all ancestors (parents)
+  /// from this up to (and including) the top of tree (`parent == null`).
+  /// If [upTo] is not null, return all ancestors up to but *not*
+  /// including [upTo].
+  ///
+  /// Special case: the ancestor of the root state is itself (returned once).
+  Iterable<RuntimeState<T>> ancestors({RuntimeState<T>? upTo}) sync* {
+    if (parent == null) {
+      yield this;
+      return;
+    }
+    if (upTo != null && upTo == this) return;
+    var probe = parent;
+    while (probe != null && upTo != probe) {
+      yield probe;
+      probe = probe.parent;
+      if (probe == null) break;
+    }
+  }
+
   @override
   int get hashCode => hash3(state, parent, order);
 
   @override
   String? get id => state.id;
 
-  // @override
-  // State<T> get initialSubstate => state.initialSubstate;
+  @override
+  // TODO: implement initializingTransitions
+  Iterable<Transition<T>> get initializingTransitions =>
+      throw UnimplementedError();
+
+  @override
+  Iterable<String>? get initialRefs => state.initialRefs;
+
+  @override
+  // TODO: implement initialTransition
+  Transition<T>? get initialTransition => throw UnimplementedError();
 
   @override
   bool get isAtomic => state.isAtomic;
@@ -47,11 +78,6 @@ class RuntimeState<T> implements State<T>, Comparable {
   bool get isFinal => state.isFinal;
 
   bool get isHistoryState => state is HistoryState<T>;
-
-/*
-  @override
-  bool get isInitial => state.isInitial;
-  */
 
   @override
   bool get isParallel => state.isParallel;
@@ -74,6 +100,9 @@ class RuntimeState<T> implements State<T>, Comparable {
       state == other.state &&
       order == other.order &&
       parent == other.parent;
+
+  @override
+  int compareTo(other) => order.compareTo(other.order);
 
   @override
   void enter(T? context) => state.enter(context);
@@ -122,7 +151,8 @@ class RuntimeState<T> implements State<T>, Comparable {
       final wrapped = RuntimeState<T>(state, index++, parent);
       var position = 0;
       wrapped.transitions = [
-        for (var t in state.transitions) RuntimeTransition(t, wrapped, position++)
+        for (var t in state.transitions)
+          RuntimeTransition(t, wrapped, position++)
       ];
       transitions.addAll(wrapped.transitions);
       wrapped.substates = [
@@ -138,19 +168,4 @@ class RuntimeState<T> implements State<T>, Comparable {
     }
     return wrappedRoot;
   }
-
-  @override
-  int compareTo(other) => order.compareTo(other.order);
-
-  @override
-  Iterable<String>? get initialRefs => state.initialRefs;
-
-  @override
-  // TODO: implement initialTransition
-  Transition<T>? get initialTransition => throw UnimplementedError();
-
-  @override
-  // TODO: implement initializingTransitions
-  Iterable<Transition<T>> get initializingTransitions =>
-      throw UnimplementedError();
 }

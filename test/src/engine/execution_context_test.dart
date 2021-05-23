@@ -84,23 +84,6 @@ void main() {
       expect(transition!.source.id, equals('b'));
     });
 
-    group('getProperAncestors', () {
-      test(
-          'root',
-          () => expect(
-              ctx.getProperAncestors(ctx['root']!).ids, equals(['root'])));
-
-      test(
-          'd',
-          () => expect(ctx.getProperAncestors(ctx['d']!).ids,
-              equals(['c', 'a', 'root'])));
-
-      test(
-          'd, a',
-          () => expect(
-              ctx.getProperAncestors(ctx['d']!, ctx['a']).ids, equals(['c'])));
-    });
-
     group('LCCA', () {
       test(
           'root', () => expect(ctx.findLCCA([rtRoot, rtA]).id, equals('root')));
@@ -129,9 +112,9 @@ void main() {
     */
   });
 
-  group('transitions', () {
-    test(description, body)
-  })
+  // group('transitions', () {
+  //   test(description, body)
+  // })
 
   // runtime segment
   group('state selection (no history)', () {
