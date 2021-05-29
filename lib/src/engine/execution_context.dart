@@ -70,7 +70,6 @@ class ExecutionContext<T> {
   @visibleForTesting
   void addDescendantStatesToEnter(RuntimeState<T>? state) {
     if (state == null) return;
-    /*
     if (state.isHistoryState) {
       if (historyValues.containsKey(state.id)) {
         for (var s in historyValues[state.id]!) {
@@ -80,6 +79,7 @@ class ExecutionContext<T> {
           addAncestorStatesToEnter(s, state.parent);
         }
       } else {
+        // state.transition.content contains the executable elements for the transition
         _defaultHistoryContent[state.parent?.id] = state.transition.content;
         for (var s in state.transition.target) {
           addDescendantStatesToEnter(s);
@@ -108,7 +108,6 @@ class ExecutionContext<T> {
         }
       }
     }
-          */
   }
 
   void computeEntrySet(Iterable<RuntimeTransition<T>> transitions) {
@@ -161,15 +160,32 @@ class ExecutionContext<T> {
       state.substates.where((s) => !s.isHistoryState);
 
   @visibleForTesting
-  Iterable<RuntimeState<T>> getEffectiveTargetStates(
-          RuntimeTransition<T> transition) =>
-      OrderedSet(Comparing.on((p) => p.order))
-        ..addAll(_getEffectiveTargetStates(transition));
 
-  // @visibleForTesting
-  // Iterable<RuntimeState<T>> getProperAncestors(RuntimeState<T> fromState,
-  //         [RuntimeState<T>? toState]) =>
-  //     fromState.ancestors(toState);
+  /// Used in: [computeEntrySet] and [getTransitionDomain]
+  Iterable<RuntimeState<T>> getEffectiveTargetStates(
+      RuntimeTransition<T> transition) {
+    Iterable<RuntimeState<T>> _getEffectiveTargetStates(
+        RuntimeTransition<T> transition) sync* {
+      for (var s in transition.targetStates) {
+        if (!s.isHistoryState) {
+          yield s;
+        } else {
+          if (historyValues.containsKey(s.id)) {
+            for (var historyState in historyValues[s.id]!) {
+              yield historyState;
+            }
+          } else {
+            for (var t in s.transitions) {
+              yield* _getEffectiveTargetStates(t);
+            }
+          }
+        }
+      }
+    }
+
+    return OrderedSet(Comparing.on((p) => p.order))
+      ..addAll(_getEffectiveTargetStates(transition));
+  }
 
   @visibleForTesting
   RuntimeState<T>? getTransitionDomain(RuntimeTransition<T> t) {
@@ -195,9 +211,25 @@ class ExecutionContext<T> {
           ? s.substates.any((c) => c.isFinal && activeStates.contains(c))
           : s.isFinal && activeStates.contains(s);
 
-  // NOTE: This has been changed from the spec, see final return
-  @visibleForTesting
-  Iterable<RuntimeTransition<T>> removeConflictingTransitions(
+  Iterable<RuntimeTransition<T>> selectTransitions(
+      String? event, T? context, Iterable<RuntimeState<T>> activeStates) {
+    var enabledTransitions =
+        OrderedSet<RuntimeTransition<T>>(Comparing.on((t) => t.source.order));
+    for (var state in activeStates.where((s) => s.isAtomic)) {
+      for (var s in [state, ...state.ancestors()]) {
+        for (var t in s.transitions) {
+          // n.b. assumes sorting in document order for transitions
+          if (t.matches(anEvent: event, context: context)) {
+            enabledTransitions.add(t);
+            break;
+          }
+        }
+      }
+    }
+    return _removeConflictingTransitions(enabledTransitions, activeStates);
+  }
+
+  Iterable<RuntimeTransition<T>> _removeConflictingTransitions(
       Iterable<RuntimeTransition<T>> enabledTransitions,
       Iterable<RuntimeState<T>> activeStates) {
     final filteredTransitions =
@@ -227,54 +259,11 @@ class ExecutionContext<T> {
     return filteredTransitions;
   } // spec returns false here
 
-  Iterable<RuntimeTransition<T>> selectTransitions(
-      String? event, T? context, Iterable<RuntimeState<T>> activeStates) {
-    var enabledTransitions =
-        OrderedSet<RuntimeTransition<T>>(Comparing.on((t) => t.source.order));
-    final atomicStates =
-        activeStates.where((s) => s.isAtomic); // ordered set in document order
-    for (var state in atomicStates) {
-      for (var s in [state, ...state.ancestors()]) {
-        for (var t in s.transitions) {
-          // n.b. assumes sorting in document order for transitions
-          if (t.matches(anEvent: event, context: context)) {
-            enabledTransitions.add(t);
-            break;
-          }
-        }
-      }
-    }
-    return removeConflictingTransitions(enabledTransitions, activeStates);
-  }
-
-  // The purpose of this procedure is to add to statesToEnter 'state' and any of its descendants that the state machine will end up entering when it enters 'state'. (N.B. If 'state' is a history pseudo-state, we dereference it and add the history value instead.) Note that this procedure permanently modifies both statesToEnter and statesForDefaultEntry.
-  //
-  // First, If state is a history state then add either the history values associated with state or state's default target to statesToEnter. Then (since the history value may not be an immediate descendant of 'state's parent) add any ancestors between the history value and state's parent. Else (if state is not a history state), add state to statesToEnter. Then if state is a compound state, add state to statesForDefaultEntry and recursively call addStatesToEnter on its default initial state(s). Then, since the default initial states may not be children of 'state', add any ancestors between the default initial states and 'state'. Otherwise, if state is a parallel state, recursively call addStatesToEnter on any of its child states that don't already have a descendant on statesToEnter.
-
   void _buildLookupMap() {
     assert(_lookupMap.isEmpty); // should only be called once
     root.toIterable
         .where((s) => s.id != null)
         .forEach((state) => _lookupMap[state.id!] = state);
-  }
-
-  Iterable<RuntimeState<T>> _getEffectiveTargetStates(
-      RuntimeTransition<T> transition) sync* {
-    for (var s in transition.targetStates) {
-      if (!s.isHistoryState) {
-        yield s;
-      } else {
-        if (historyValues.containsKey(s.id)) {
-          for (var historyState in historyValues[s.id]!) {
-            yield historyState;
-          }
-        } else {
-          for (var t in s.transitions) {
-            yield* _getEffectiveTargetStates(t);
-          }
-        }
-      }
-    }
   }
 
   void selectInitialStates(Iterable<Transition<T>> transitions) {
