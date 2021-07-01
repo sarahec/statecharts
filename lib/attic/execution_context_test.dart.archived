@@ -16,7 +16,7 @@
 import 'package:statecharts/statecharts.dart';
 import 'package:test/test.dart';
 
-import '../lightswitch.dart';
+import '../../test/src/lightswitch.dart';
 
 void main() {
   /*

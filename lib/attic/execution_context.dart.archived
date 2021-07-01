@@ -70,6 +70,7 @@ class ExecutionContext<T> {
   @visibleForTesting
   void addDescendantStatesToEnter(RuntimeState<T>? state) {
     if (state == null) return;
+
     if (state.isHistoryState) {
       if (historyValues.containsKey(state.id)) {
         for (var s in historyValues[state.id]!) {

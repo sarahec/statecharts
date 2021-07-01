@@ -106,7 +106,7 @@ class State<T> {
 
   @override
   bool operator ==(Object other) =>
-      other is State &&
+      other is State<T> &&
       id == other.id &&
       isFinal == other.isFinal &&
       isParallel == other.isParallel &&

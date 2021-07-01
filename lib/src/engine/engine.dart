@@ -35,7 +35,7 @@ class Engine<T> {
 
   Iterable<State<T>> get activeStates => [];
 
-  ExecutionContext<T> get executionContext => _executionContext;
+  // ExecutionContext<T> get executionContext => _executionContext;
 
   bool execute({String? anEvent, Duration? elapsedTime}) {
     // assert(_activeStates.isNotEmpty);

@@ -28,28 +28,6 @@ class RuntimeState<T> implements State<T>, Comparable {
 
   RuntimeState(this.state, this.order, [this.parent]);
 
-  /// Finds the ancestors of a state
-  ///
-  /// If [upTo] is null, returns the set of all ancestors (parents)
-  /// from this up to (and including) the top of tree (`parent == null`).
-  /// If [upTo] is not null, return all ancestors up to but *not*
-  /// including [upTo].
-  ///
-  /// Special case: the ancestor of the root state is itself (returned once).
-  Iterable<RuntimeState<T>> ancestors({RuntimeState<T>? upTo}) sync* {
-    if (parent == null) {
-      yield this;
-      return;
-    }
-    if (upTo != null && upTo == this) return;
-    var probe = parent;
-    while (probe != null && upTo != probe) {
-      yield probe;
-      probe = probe.parent;
-      if (probe == null) break;
-    }
-  }
-
   @override
   int get hashCode => hash3(state, parent, order);
 
@@ -91,7 +69,14 @@ class RuntimeState<T> implements State<T>, Comparable {
   Action<T>? get onExit => state.onExit;
 
   Iterable<RuntimeState<T>> get toIterable sync* {
-    yield* generateIterable(this);
+    Iterable<RuntimeState<T>> _toIterable(RuntimeState<T> node) sync* {
+      yield node;
+      for (var child in node.substates) {
+        yield* _toIterable(child);
+      }
+    }
+
+    yield* _toIterable(this);
   }
 
   @override
@@ -100,6 +85,42 @@ class RuntimeState<T> implements State<T>, Comparable {
       state == other.state &&
       order == other.order &&
       parent == other.parent;
+
+  Iterable<RuntimeState<T>> activeDescendents(
+      Set<RuntimeState<T>> selections) sync* {
+    Iterable<RuntimeState<T>> _active(RuntimeState<T> node) sync* {
+      yield node;
+      if (node.isAtomic) return;
+      final child =
+          node.substates.firstWhereOrNull((c) => selections.contains(c)) ??
+              node.substates.first;
+      yield* _active(child);
+    }
+
+    yield* _active(this);
+  }
+
+  /// Finds the ancestors of a state
+  ///
+  /// If [upTo] is null, returns the set of all ancestors (parents)
+  /// from this up to (and including) the top of tree (`parent == null`).
+  /// If [upTo] is not null, return all ancestors up to but *not*
+  /// including [upTo].
+  ///
+  /// Special case: the ancestor of the root state is itself (returned once).
+  Iterable<RuntimeState<T>> ancestors({RuntimeState<T>? upTo}) sync* {
+    if (parent == null) {
+      yield this;
+      return;
+    }
+    if (upTo != null && upTo == this) return;
+    var probe = parent;
+    while (probe != null && upTo != probe) {
+      yield probe;
+      probe = probe.parent;
+      if (probe == null) break;
+    }
+  }
 
   @override
   int compareTo(other) => order.compareTo(other.order);
@@ -110,12 +131,8 @@ class RuntimeState<T> implements State<T>, Comparable {
   @override
   void exit(T? context) => state.exit(context);
 
-  Iterable<RuntimeState<T>> generateIterable(RuntimeState<T> node) sync* {
-    yield node;
-    for (var child in node.substates) {
-      yield* generateIterable(child);
-    }
-  }
+  RuntimeState<T>? find(String id) =>
+      toIterable.firstWhereOrNull((element) => element.id == id);
 
   RuntimeTransition<T>? getTransition(String toState) =>
       transitions.firstWhereOrNull((t) => t.targets.contains(toState));
@@ -168,4 +185,9 @@ class RuntimeState<T> implements State<T>, Comparable {
     }
     return wrappedRoot;
   }
+}
+
+// Testing extensions
+extension IDs on Iterable<RuntimeState> {
+  Iterable<String> get ids => map((e) => e.id ?? 'null');
 }
