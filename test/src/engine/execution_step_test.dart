@@ -22,13 +22,14 @@ import '../lightswitch.dart';
 void main() {
   var step0;
   var tree;
-  var rootState, onState;
+  var rootState, onState, offState;
 
   setUp(() {
     tree = RuntimeState.wrapSubtree(lightswitch);
     step0 = ExecutionStep<Lightbulb>(tree);
     rootState = step0['lightswitch'];
     onState = step0['on'];
+    offState = step0['off'];
   });
   group('ExecutionStep', () {
     test('defaults', () {
@@ -47,9 +48,7 @@ void main() {
         () => expect(step0.toBuilder.build(), equals(step0)));
 
     test('initialization w/ idref', () {
-      final step1 = step0.toBuilder
-        ..initialize(idrefs: ['on'])
-        ..build();
+      final step1 = step0.toBuilder..initialize(idrefs: ['on']);
       expect(step1.selections, equals([onState]));
       expect(step1.activeStates, containsAll([rootState, onState]));
       expect(step1.entryStates, containsAll([rootState, onState]));
@@ -63,6 +62,16 @@ void main() {
       expect(step1.activeStates, equals([rootState, onState]));
       expect(step1.entryStates, equals([rootState, onState]));
       expect(step1.exitStates, isEmpty);
-    }, skip: true);
+    });
+
+    test('replace child state', () {
+      final step1 = step0.toBuilder
+        ..remove(onState)
+        ..add(offState)
+        ..build();
+      expect(step1.activeStates, equals([rootState, offState]));
+      expect(step1.entryStates, equals([rootState, offState]));
+      expect(step1.exitStates, isEmpty);
+    });
   });
 }

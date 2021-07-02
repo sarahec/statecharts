@@ -16,31 +16,32 @@
 import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 import 'package:quiver/core.dart';
-
-import 'runtime_state.dart';
+import 'package:statecharts/statecharts.dart';
 
 class ExecutionStep<T> {
   final RuntimeState<T> root;
 
-  final Iterable<RuntimeState<T>> activeStates;
+  final Set<RuntimeState<T>> activeStates;
   final Iterable<RuntimeState<T>> entryStates;
   final Iterable<RuntimeState<T>> exitStates;
-  final Iterable<RuntimeState<T>> selections;
+  final Set<RuntimeState<T>> selections;
 
   late final Map<String, RuntimeState<T>> lookupMap;
 
   ExecutionStep(this.root)
-      : activeStates = [],
+      : activeStates = {},
         entryStates = [],
         exitStates = [],
-        selections = [],
-        lookupMap = {
+        selections = {},
+        lookupMap = UnmodifiableMapView({
           for (var state in root.toIterable.where((s) => s.id != null))
             state.id!: state
-        };
+        });
 
-  ExecutionStep._(this.root, this.activeStates, this.entryStates,
-      this.exitStates, this.selections, this.lookupMap);
+  ExecutionStep._(priorState, this.activeStates, this.entryStates,
+      this.exitStates, this.selections)
+      : root = priorState.root,
+        lookupMap = priorState.lookupMap;
 
   @override
   int get hashCode =>
@@ -66,86 +67,56 @@ class ExecutionStep<T> {
 class ExecutionStepBuilder<T> {
   final ExecutionStep<T> priorState;
 
-  final Set<RuntimeState<T>>
-      _selections; // .sorted((a, b) => a.order - b.order);
-
-  final Set<RuntimeState<T>> _activeStates;
-
-  @visibleForTesting
-  final _entryStates =
-      <RuntimeState<T>>{}; // .sorted((a, b) => a.order - b.order);
-
-  @visibleForTesting
-  final exitStates = <RuntimeState<T>>{};
-
-  final _additions = <RuntimeState<T>>{};
-  final _removals = <RuntimeState<T>>{};
-
-  ExecutionStepBuilder._(ExecutionStep<T> this.priorState)
-      : _selections = Set.from(priorState.selections),
-        _activeStates = Set<RuntimeState<T>>.from(priorState.activeStates);
+  /// Explicitly selected states from transitions
+  final Set<RuntimeState<T>> selections;
 
   /// The fully-expanded set of active states built on the selections
-  Iterable<RuntimeState<T>> get activeStates => _activeStates;
-  Iterable<RuntimeState<T>> get entryStates => _entryStates;
+  late final Set<RuntimeState<T>> activeStates;
 
-  /// Explicitly selected states from transitions
-  Iterable<RuntimeState<T>> get selections => _selections;
+  ExecutionStepBuilder._(this.priorState)
+      : selections = Set.from(priorState.selections);
 
-  void add(RuntimeState<T> state) => _additions.add(state);
+  Set<RuntimeState<T>> get entryStates =>
+      UnmodifiableSetView(activeStates.difference(priorState.activeStates));
 
-  @visibleForTesting
-  void addAncestors(RuntimeState<T> state,
-      {RuntimeState<T>? upTo, required Set<RuntimeState<T>> intoSet}) {
-    for (var anc in state.ancestors(upTo: upTo)) {
-      _entryStates.add(anc);
-      if (anc.isParallel) {
-        // addParallelChildrenToEnter(anc, intoSet);
-      }
-    }
-  }
+  Set<RuntimeState<T>> get exitStates =>
+      UnmodifiableSetView(priorState.activeStates.difference(activeStates));
+
+  void add(RuntimeState<T> state) => selections.add(state);
 
   ExecutionStep<T> build() {
-    _selections.removeAll(_removals);
-    _selections.addAll(_additions);
-    return ExecutionStep<T>._(priorState.root, _activeStates, _entryStates,
-        exitStates, selections, priorState.lookupMap);
+    activeStates = buildActiveStates();
+    return ExecutionStep<T>._(
+        priorState, activeStates, entryStates, exitStates, selections);
   }
 
+  /*
   @visibleForTesting
   Iterable<RuntimeState<T>> getChildStates(RuntimeState<T> state) =>
       state.substates.where((s) => !s.isHistoryState);
+  */
 
-  void initialize({required Iterable<String> idrefs}) {
+  Set<RuntimeState<T>> buildActiveStates() {
+    final _activeStates = <RuntimeState<T>>{};
+    for (var s in selections) {
+      _activeStates.addAll(s.ancestors());
+    }
+    for (var s in selections) {
+      _activeStates.addAll(s.activeDescendents(selections));
+    }
+    return _activeStates;
+  }
+
+  ExecutionStep<T> initialize({required Iterable<String> idrefs}) {
+    assert(selections.isEmpty);
     final states = [for (var id in idrefs) priorState.findState(id)!];
-    _selections
-      ..clear()
-      ..addAll(states);
-    // We can build the active list from scratch
-    // collect nodes up to the root
-    final ancestors = states.map((s) => s.ancestors()).expand((e) => e);
-    _activeStates
-      ..clear()
-      ..addAll(ancestors);
-    _activeStates.addAll(states);
-    final selectionDescendents = _selections
-        .map((s) => s.activeDescendents(_selections))
-        .expand((e) => e);
-    _activeStates.addAll(selectionDescendents);
-    _entryStates.addAll(_activeStates);
+    selections.addAll(states);
+    activeStates = buildActiveStates();
+    return ExecutionStep<T>._(
+        priorState, activeStates, entryStates, exitStates, selections);
   }
 
-  ///  True if state1 descends from state2
-  @visibleForTesting
-  bool isDescendant(RuntimeState<T> state1, RuntimeState<T> state2) =>
-      state1.ancestors().contains(state2);
-
-  void remove(RuntimeState<T> state) => _removals.add(state);
-
-  void replace(RuntimeState<T> oldState, RuntimeState<T> newState) {
-    remove(oldState);
-    add(newState);
-  }
+  void remove(RuntimeState<T> state) => selections.remove(state);
 
   // void addParallelChildrenToEnter(RuntimeState<T> state) {
   //   for (var child in getChildStates(state)) {
