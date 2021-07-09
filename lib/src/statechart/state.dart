@@ -19,13 +19,14 @@ import 'package:statecharts/statecharts.dart';
 
 // final _log = Logger('State');
 
+enum HistoryDepth { SHALLOW, DEEP }
+
 class HistoryState<T> extends State<T> {
-  final String type;
+  final HistoryDepth type;
   final Transition transition;
 
-  HistoryState(String? id, this.transition, [this.type = 'deep'])
-      : assert(type == 'shallow' || type == 'deep', 'invalid history type'),
-        super(id);
+  HistoryState(String? id, this.transition, [this.type = HistoryDepth.DEEP])
+      : super(id);
 }
 
 class RootState<T> extends State<T> {
@@ -77,14 +78,6 @@ class State<T> {
   final Iterable<String>? initialRefs;
 
   final Transition<T>? initialTransition;
-
-  Iterable<Transition<T>> get initializingTransitions =>
-      initialTransition != null
-          ? [initialTransition!]
-          : initialRefs?.map((ref) => Transition<T>(targets: [ref])) ??
-              [
-                Transition<T>(targets: [substates.first.id!])
-              ];
 
   State(this.id,
       {this.transitions = const [],
