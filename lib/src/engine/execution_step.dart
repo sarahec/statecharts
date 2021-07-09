@@ -1,128 +1,118 @@
-// Copyright 2021 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//
-//      https://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
+import 'package:built_collection/built_collection.dart';
+import 'package:built_value/built_value.dart';
 import 'package:collection/collection.dart';
-import 'package:meta/meta.dart';
-import 'package:quiver/core.dart';
+import 'package:logging/logging.dart';
 import 'package:statecharts/statecharts.dart';
 
-class ExecutionStep<T> {
-  final RuntimeState<T> root;
+part 'execution_step.g.dart';
 
-  final Set<RuntimeState<T>> activeStates;
-  final Iterable<RuntimeState<T>> entryStates;
-  final Iterable<RuntimeState<T>> exitStates;
-  final Set<RuntimeState<T>> selections;
+final _log = Logger('execution_step');
 
-  late final Map<String, RuntimeState<T>> lookupMap;
+abstract class ExecutionStep<T>
+    implements Built<ExecutionStep<T>, ExecutionStepBuilder<T>> {
+  factory ExecutionStep([void Function(ExecutionStepBuilder<T>) updates]) =
+      _$ExecutionStep<T>;
 
-  ExecutionStep(this.root)
-      : activeStates = {},
-        entryStates = [],
-        exitStates = [],
-        selections = {},
-        lookupMap = UnmodifiableMapView({
-          for (var state in root.toIterable.where((s) => s.id != null))
-            state.id!: state
-        });
-
-  ExecutionStep._(priorState, this.activeStates, this.entryStates,
-      this.exitStates, this.selections)
-      : root = priorState.root,
-        lookupMap = priorState.lookupMap;
-
-  @override
-  int get hashCode =>
-      hashObjects([root, activeStates, entryStates, exitStates, selections]);
-
-  ExecutionStepBuilder<T> get toBuilder => ExecutionStepBuilder<T>._(this);
-
-  @override
-  bool operator ==(Object other) =>
-      other is ExecutionStep<T> &&
-      root == other.root &&
-      IterableEquality().equals(activeStates, other.activeStates) &&
-      IterableEquality().equals(entryStates, other.entryStates) &&
-      IterableEquality().equals(exitStates, other.exitStates);
-
-  /// Shorthand for [findState]
-  @visibleForTesting
-  RuntimeState<T>? operator [](String? id) => findState(id);
-
-  RuntimeState<T>? findState(String? id) => lookupMap[id];
-}
-
-class ExecutionStepBuilder<T> {
-  final ExecutionStep<T> priorState;
-
-  /// Explicitly selected states from transitions
-  final Set<RuntimeState<T>> selections;
-
-  /// The fully-expanded set of active states built on the selections
-  late final Set<RuntimeState<T>> activeStates;
-
-  ExecutionStepBuilder._(this.priorState)
-      : selections = Set.from(priorState.selections);
-
-  Set<RuntimeState<T>> get entryStates =>
-      UnmodifiableSetView(activeStates.difference(priorState.activeStates));
-
-  Set<RuntimeState<T>> get exitStates =>
-      UnmodifiableSetView(priorState.activeStates.difference(activeStates));
-
-  void add(RuntimeState<T> state) => selections.add(state);
-
-  ExecutionStep<T> build() {
-    activeStates = buildActiveStates();
-    return ExecutionStep<T>._(
-        priorState, activeStates, entryStates, exitStates, selections);
+  factory ExecutionStep.initial(RuntimeState<T> root) {
+    final allNodes = List.of(root.toIterable, growable: false);
+    // Collect all the explicit initial states
+    final initialStates = <RuntimeState<T>>{};
+    for (var s in allNodes.where((probe) => probe.isCompound)) {
+      final refs = s.initialRefs ?? s.initialTransition?.targets ?? [];
+      late final states;
+      try {
+        states =
+            refs.map((ref) => allNodes.firstWhere((probe) => probe.id == ref));
+      } catch (_) {
+        _log.warning('Could not find target of initial reference in $s');
+      }
+      assert(!states.all((probe) => probe.descendsFrom(s)),
+          'ERROR: Initialization target lies outside descendents of $s');
+    }
+    return ExecutionStep((b) => b
+      ..root = root
+      ..selections.addAll(initialStates));
   }
 
-  /*
-  @visibleForTesting
-  Iterable<RuntimeState<T>> getChildStates(RuntimeState<T> state) =>
-      state.substates.where((s) => !s.isHistoryState);
-  */
+  ExecutionStep._();
 
-  Set<RuntimeState<T>> buildActiveStates() {
+  @memoized
+  Set<RuntimeState<T>> get activeStates {
     final _activeStates = <RuntimeState<T>>{};
     for (var s in selections) {
       _activeStates.addAll(s.ancestors());
     }
     for (var s in selections) {
-      _activeStates.addAll(s.activeDescendents(selections));
+      _activeStates.addAll(s.activeDescendents(selections.asSet()));
     }
-    return _activeStates;
+    return UnmodifiableSetView(_activeStates);
   }
 
-  ExecutionStep<T> initialize({required Iterable<String> idrefs}) {
-    assert(selections.isEmpty);
-    final states = [for (var id in idrefs) priorState.findState(id)!];
-    selections.addAll(states);
-    activeStates = buildActiveStates();
-    return ExecutionStep<T>._(
-        priorState, activeStates, entryStates, exitStates, selections);
+  @memoized
+  Iterable<RuntimeState<T>> get entryStates =>
+      activeStates.difference(priorStep?.activeStates ?? {}).toList()
+        ..sort((a, b) => a.order - b.order);
+
+  @memoized
+  Iterable<RuntimeState<T>> get exitStates => priorStep == null
+      ? []
+      : (priorStep!.activeStates.difference(activeStates).toList()
+        ..sort((a, b) => a.order - b.order));
+
+  @memoized
+  BuiltMap<String, Iterable<RuntimeState<T>>> get history {
+    if (priorStep == null) {
+      return BuiltMap<String, Iterable<RuntimeState<T>>>();
+    }
+    final b = priorStep!.history.toBuilder();
+    for (var s in exitStates.where((s) => s.containsHistoryState)) {
+      b[s.id!] = historyValuesFor(s);
+    }
+    return b.build();
   }
 
-  void remove(RuntimeState<T> state) => selections.remove(state);
+  bool get isUnchanged =>
+      priorStep != null &&
+      SetEquality().equals(selections.asSet(), priorStep!.selections.asSet());
 
-  // void addParallelChildrenToEnter(RuntimeState<T> state) {
-  //   for (var child in getChildStates(state)) {
-  //     if (!entryStates.any((s) => isDescendant(s, child))) {
-  //       addDescendantStatesToEnter(child);
-  //     }
-  //   }
-  // }
+  ExecutionStep<T>? get priorStep;
+
+  RuntimeState<T> get root;
+
+  BuiltSet<RuntimeState<T>> get selections;
+
+  Iterable<RuntimeTransition<T>>? get transitions;
+
+  Iterable<RuntimeState<T>> historyValuesFor(RuntimeState<T> s) {
+    assert(s.containsHistoryState);
+    assert(priorStep != null);
+    // Since this is called for states that are exiting, we have to use the prior active states
+    final priorActive = priorStep!.activeStates;
+    final activeChildren =
+        s.substates.where((probe) => priorActive.contains(probe));
+    final historyChildren = s.substates.where((probe) => probe.isHistoryState);
+    late final deepChildren;
+    // From the spec:
+    // If the 'type' of a <history> element is "shallow", the SCXML processor
+    // must record the immediately active children of its parent before taking
+    // any transition that exits the parent. If the 'type' of a <history>
+    // element is "deep", the SCXML processor must record the active atomic
+    // descendants of the parent before taking any transition that exits the
+    // parent.
+    //
+    // Note that in a conformant SCXML document, a <state> or <parallel>
+    // element may have both "deep" and "shallow" <history> children.
+    final result = <RuntimeState<T>>{};
+    for (var hs in historyChildren) {
+      if ((hs.state as HistoryState).type == HistoryDepth.SHALLOW) {
+        result.addAll(activeChildren);
+      } else {
+        deepChildren ??= [
+          for (var c in activeChildren) c.activeDescendents(priorActive).last
+        ];
+        result.addAll(deepChildren);
+      }
+    }
+    return result;
+  }
 }
