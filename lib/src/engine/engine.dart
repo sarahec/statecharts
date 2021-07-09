@@ -12,12 +12,17 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+import 'package:built_value/built_value.dart';
 import 'package:statecharts/statecharts.dart';
 
 class Engine<T> {
   final RuntimeState<T> root;
-  final T? context;
-  var _executionContext;
+  T? get context => _context;
+  ExecutionStep<T> get currentStep => _currentStep;
+
+  var _context;
+
+  var _currentStep;
 
   // Iterable<RuntimeState<T>> _configuration = {};
   // var _statesToInvoke;
@@ -30,27 +35,64 @@ class Engine<T> {
   // var _binding;
   // var _historyValues;
 
-  Engine(RootState<T> startNode, [this.context])
-      : root = RuntimeState.wrapSubtree(startNode);
+  factory Engine(RootState<T> startNode, [T? context]) {
+    assert(context == null || context is Built);
+    final root = RuntimeState.wrapSubtree(startNode);
+    final step0 = ExecutionStep.initial(root);
+    return Engine._(root, context, step0);
+  }
 
-  Iterable<State<T>> get activeStates => [];
+  Engine._(this.root, this._context, this._currentStep);
 
   // ExecutionContext<T> get executionContext => _executionContext;
 
   bool execute({String? anEvent, Duration? elapsedTime}) {
-    // assert(_activeStates.isNotEmpty);
-    throw UnimplementedError();
-    // // Get the available transitions
-    // final startingState = _activeStates.first;
-    // final transition =
-    //     startingState.transitionFor(event: anEvent, context: context);
-    // final endingState =
-    //     statechart.find(id: transition.targetId, inChildren: false);
-    // if (endingState.id != startingState.id) {
-    //   startingState.exit(context);
-    //   endingState.enter(context);
-    //   _activeStates[_activeStates.indexOf(startingState)] = endingState;
-    // }
-    // return endingState.id != startingState.id;
+    // Get the available transitions
+
+    final transitions = getTransitions(anEvent, elapsedTime, context);
+    final step_n = nextStep(transitions);
+    if (step_n.isUnchanged) return false;
+    if (context != null) {
+      var newContext = runTransitions(step_n, context);
+      newContext = runExitStates(step_n, newContext);
+      newContext = runExitStates(step_n, newContext);
+      _context = newContext;
+    }
+    return true;
+  }
+
+  Iterable<RuntimeTransition<T>> getTransitions(
+          String? anEvent, Duration? elapsedTime, T? context) =>
+      [
+        for (var s in _currentStep.activeStates)
+          s.transitionFor(anEvent, elapsedTime, context)
+      ].where((s) => s != null).cast();
+
+  T? runTransitions(ExecutionStep<T> step, T? context) => context;
+
+  T? runExitStates(ExecutionStep<T> step, T? context) {
+    if (step.exitStates.isEmpty) return context;
+    final builder = (context as Built).toBuilder();
+    for (var s in step.exitStates) {
+      s.exit(builder as T);
+    }
+    return builder.build();
+  }
+
+  T? runEntryStates(ExecutionStep<T> step, T? context) {
+    if (step.entryStates.isEmpty) return context;
+    final builder = (context as Built).toBuilder();
+    for (var s in step.entryStates) {
+      s.exit(builder as T);
+    }
+    return builder.build();
+  }
+
+  ExecutionStep<T> nextStep(Iterable<RuntimeTransition<T>> transitions) {
+    final b = _currentStep.toBuilder();
+    b.transitions = transitions;
+    b.selections.removeAll(transitions.map((t) => t.source));
+    b.selections.addAll(transitions.map((t) => t.targets).expand((s) => s));
+    return b.build();
   }
 }

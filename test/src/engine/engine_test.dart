@@ -28,12 +28,12 @@ void main() {
     });
 
     test('selects initial state', () {
-      expect(engine?.activeStates, containsAll([stateOff]));
+      expect(engine!.currentStep.activeStates, containsAll([stateOff]));
     });
 
     test("executes 'on' transition", () {
       engine!.execute(anEvent: turnOn);
-      expect(engine?.activeStates, containsAll([stateOn]));
+      expect(engine!.currentStep.activeStates, containsAll([stateOn]));
     });
 
     test('calls onEntry', () {
