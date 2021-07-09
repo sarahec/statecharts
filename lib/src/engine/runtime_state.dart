@@ -25,8 +25,12 @@ class RuntimeState<T> implements State<T>, Comparable {
   late final Iterable<RuntimeState<T>> substates;
   @override
   late final Iterable<RuntimeTransition<T>> transitions;
+  @override
+  late final Transition<T>? initialTransition;
 
   RuntimeState(this.state, this.order, [this.parent]);
+
+  bool get containsHistoryState => substates.any((s) => s.isHistoryState);
 
   @override
   int get hashCode => hash3(state, parent, order);
@@ -35,16 +39,7 @@ class RuntimeState<T> implements State<T>, Comparable {
   String? get id => state.id;
 
   @override
-  // TODO: implement initializingTransitions
-  Iterable<Transition<T>> get initializingTransitions =>
-      throw UnimplementedError();
-
-  @override
   Iterable<String>? get initialRefs => state.initialRefs;
-
-  @override
-  // TODO: implement initialTransition
-  Transition<T>? get initialTransition => throw UnimplementedError();
 
   @override
   bool get isAtomic => state.isAtomic;
@@ -141,9 +136,7 @@ class RuntimeState<T> implements State<T>, Comparable {
       transitions.any((t) => t.targets.contains(toState));
 
   @override
-  String toString() =>
-      super.toString() +
-      '(state: $state,  parent id:${parent?.id}, order: $order}';
+  String toString() => '(id: $id, parent: ${parent?.id}, order: $order)';
 
   Transition<T>? transitionFor(
           {String? event,
