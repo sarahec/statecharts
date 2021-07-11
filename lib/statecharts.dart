@@ -19,6 +19,6 @@ export 'src/engine/engine.dart';
 export 'src/engine/execution_step.dart';
 export 'src/statechart/state.dart';
 export 'src/statechart/state_resolver.dart';
-export 'src/statechart/state_helpers.dart';
+export 'src/statechart/history_state.dart';
 export 'src/statechart/transition.dart';
 export 'src/statechart/typedefs.dart';

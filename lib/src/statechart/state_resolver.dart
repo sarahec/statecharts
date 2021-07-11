@@ -15,21 +15,27 @@
 
 import 'dart:async';
 
+import 'package:logging/logging.dart';
 import 'package:statecharts/statecharts.dart';
 
-// final _log = Logger('StateResolver');
+final _log = Logger('StateResolver');
 
 class StateResolver<T> {
-  final _rootCompleter = Completer<RootState<T>>();
+  final _completer = Completer<RootState<T>>();
 
-  Future<Map<String, State<T>>> get lookupMap async =>
-      root.then((root) => {for (var s in root.toIterable) s.id!: s});
+  Future<RootState<T>> get root async => _completer.future;
 
-  Future<RootState<T>> get root async => Future.value(_rootCompleter.future);
+  void complete(RootState<T> root) => _completer.complete(root);
 
-  void complete(RootState<T> root) => _rootCompleter.complete(root);
-
-  Future<State<T>> find(String id) async => lookupMap.then((map) => map[id]!);
+  Future<State<T>?> state(String id) async => root
+          .then((r) => {for (var s in r.toIterable) s.id!: s})
+          .then((map) => map[id])
+          .then((result) {
+        if (result == null) {
+          _log.warning("Could not find id '$id'");
+        }
+        return result;
+      });
 
   Future<Transition<T>> transition(
       {targets = const <String>[],
@@ -37,12 +43,12 @@ class StateResolver<T> {
       Condition<T>? condition,
       Duration? after,
       type = TransitionType.External}) async {
-    final targetFutures = [for (var id in targets) find(id)];
-    return Future.wait(targetFutures).then((targets) => Transition<T>(
-        targets: targets,
-        event: event,
-        condition: condition,
-        after: after,
-        type: type));
+    return Future.wait([for (var id in targets) state(id)]).then((targets) =>
+        Transition<T>(
+            targets: targets.cast<State<T>>(),
+            event: event,
+            condition: condition,
+            after: after,
+            type: type));
   }
 }
