@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:async';
 import 'dart:core';
 
 import 'package:collection/collection.dart';
@@ -25,12 +26,23 @@ final _log = Logger('transition');
 class EventTransition<T> extends Transition<T> {
   final String event;
 
-  const EventTransition(
-      {Iterable<String> targets = const [],
+  EventTransition(
+      {Iterable<State<T>> targets = const [],
       required this.event,
       Condition<T>? condition,
-      String type = 'external'})
+      type = TransitionType.External})
       : super._(targets, condition, type);
+
+  @override
+  int get hashCode => hash4(event, targets, condition, type);
+
+  @override
+  bool operator ==(Object other) =>
+      other is EventTransition<T> &&
+      event == other.event &&
+      condition == other.condition &&
+      IterableEquality().equals(targets, other.targets) &&
+      type == other.type;
 
   @override
   bool matches(
@@ -47,37 +59,17 @@ class EventTransition<T> extends Transition<T> {
     _log.finest(() => 'Matching on event $anEvent: $found');
     return found;
   }
-
-  @override
-  int get hashCode => hash4(event, targets, condition, type);
-
-  @override
-  bool operator ==(Object other) =>
-      other is EventTransition<T> &&
-      event == other.event &&
-      condition == other.condition &&
-      IterableEquality().equals(targets, other.targets) &&
-      type == other.type;
 }
 
 class NonEventTransition<T> extends Transition<T> {
   final Duration? after;
 
-  const NonEventTransition(
-      {Iterable<String> targets = const [],
+  NonEventTransition(
+      {Iterable<State<T>> targets = const [],
       this.after,
       Condition<T>? condition,
-      String type = 'external'})
+      type = TransitionType.External})
       : super._(targets, condition, type);
-
-  @override
-  bool matches(
-          {String? anEvent,
-          Duration? elapsedTime,
-          T? context,
-          ignoreContext = false}) =>
-      (!ignoreContext && condition != null && meetsCondition(context)) ||
-      (elapsedTime != null && elapsedTime.compareTo(after!) >= 0);
 
   @override
   int get hashCode => hash4(targets, after, condition, type);
@@ -89,37 +81,36 @@ class NonEventTransition<T> extends Transition<T> {
       condition == other.condition &&
       IterableEquality().equals(targets, other.targets) &&
       type == other.type;
+
+  @override
+  bool matches(
+          {String? anEvent,
+          Duration? elapsedTime,
+          T? context,
+          ignoreContext = false}) =>
+      (!ignoreContext && condition != null && meetsCondition(context)) ||
+      (elapsedTime != null && elapsedTime.compareTo(after!) >= 0);
 }
 
 abstract class Transition<T> {
   final Condition<T>? condition;
-  final Iterable<String> targets;
-  final String type;
+  final Iterable<State<T>> targets;
+  final TransitionType type;
+  late final State<T>? source;
 
   factory Transition(
-          {Iterable<String> targets = const [],
+          {Iterable<State<T>> targets = const [],
           String? event,
           Condition<T>? condition,
           Duration? after,
-          String type = 'external'}) =>
+          type = TransitionType.External}) =>
       event != null
           ? EventTransition<T>(
               event: event, targets: targets, condition: condition, type: type)
           : NonEventTransition<T>(
               after: after, targets: targets, condition: condition, type: type);
 
-  const Transition._(this.targets, this.condition, this.type)
-      : assert(type == 'internal' || type == 'external',
-            'transition type must be internal or external, found $type');
-
-  bool matches(
-      {String? anEvent,
-      Duration? elapsedTime,
-      T? context,
-      ignoreContext = false});
-
-  bool meetsCondition(T? context) =>
-      condition == null || (context != null && condition!(context));
+  Transition._(this.targets, this.condition, this.type);
 
   @override
   int get hashCode => hash3(condition, targets, type);
@@ -130,4 +121,15 @@ abstract class Transition<T> {
       condition == other.condition &&
       IterableEquality().equals(targets, other.targets) &&
       type == other.type;
+
+  bool matches(
+      {String? anEvent,
+      Duration? elapsedTime,
+      T? context,
+      ignoreContext = false});
+
+  bool meetsCondition(T? context) =>
+      condition == null || (context != null && condition!(context));
 }
+
+enum TransitionType { Internal, External }

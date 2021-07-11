@@ -16,11 +16,12 @@ import 'package:built_value/built_value.dart';
 import 'package:statecharts/statecharts.dart';
 
 class Engine<T> {
-  final RuntimeState<T> root;
+  final State<T> root;
   T? get context => _context;
-  ExecutionStep<T> get currentStep => _currentStep;
 
   var _context;
+
+  ExecutionStep<T> get currentStep => _currentStep;
 
   var _currentStep;
 
@@ -35,14 +36,10 @@ class Engine<T> {
   // var _binding;
   // var _historyValues;
 
-  factory Engine(RootState<T> startNode, [T? context]) {
-    assert(context == null || context is Built);
-    final root = RuntimeState.wrapSubtree(startNode);
-    final step0 = ExecutionStep.initial(root);
-    return Engine._(root, context, step0);
-  }
-
-  Engine._(this.root, this._context, this._currentStep);
+  Engine(RootState<T> rootState, [this._context])
+      : assert(_context == null || _context is Built),
+        root = rootState,
+        _currentStep = ExecutionStep.initial(rootState);
 
   // ExecutionContext<T> get executionContext => _executionContext;
 
@@ -55,13 +52,13 @@ class Engine<T> {
     if (context != null) {
       var newContext = runTransitions(step_n, context);
       newContext = runExitStates(step_n, newContext);
-      newContext = runExitStates(step_n, newContext);
+      newContext = runEntryStates(step_n, newContext);
       _context = newContext;
     }
     return true;
   }
 
-  Iterable<RuntimeTransition<T>> getTransitions(
+  Iterable<Transition<T>> getTransitions(
           String? anEvent, Duration? elapsedTime, T? context) =>
       [
         for (var s in _currentStep.activeStates)
@@ -88,7 +85,7 @@ class Engine<T> {
     return builder.build();
   }
 
-  ExecutionStep<T> nextStep(Iterable<RuntimeTransition<T>> transitions) {
+  ExecutionStep<T> nextStep(Iterable<Transition<T>> transitions) {
     final b = _currentStep.toBuilder();
     b.transitions = transitions;
     b.selections.removeAll(transitions.map((t) => t.source));

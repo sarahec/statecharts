@@ -23,12 +23,12 @@ void main() {
   var tree;
   var rootState, onState, offState;
 
-  setUp(() {
-    tree = RuntimeState.wrapSubtree(lightswitch);
+  setUp(() async {
+    tree = lightswitch;
     step0 = ExecutionStep<Lightbulb>.initial(tree);
-    rootState = tree.find('lightswitch');
-    onState = tree.find('on');
-    offState = tree.find('off');
+    rootState = await tree.find('lightswitch');
+    onState = await tree.find('on');
+    offState = await tree.find('off');
   });
   group('ExecutionStep', () {
     test('initialization w/ defaults', () {
@@ -37,16 +37,6 @@ void main() {
       expect(step0.entryStates, containsAll([rootState, offState]));
       expect(step0.exitStates, isEmpty);
     });
-
-    test('initialization w/ idref', () {
-      final step1 = ExecutionStep<Lightbulb>.initial(tree, initialRefs: ['on']);
-      expect(step1.selections, equals([rootState, onState]));
-      expect(step1.activeStates, containsAll([rootState, onState]));
-      expect(step1.entryStates, containsAll([rootState, onState]));
-      expect(step1.exitStates, isEmpty);
-      expect(step1.history, isEmpty);
-      expect(step1.isUnchanged, isFalse);
-    }, skip: true);
 
     test('add leaf state', () {
       final step1 = step0.rebuild((b) => b.selections.add(onState));

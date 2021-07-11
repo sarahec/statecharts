@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:async';
+
 import 'package:collection/collection.dart';
 import 'package:quiver/core.dart';
 import 'package:statecharts/statecharts.dart';
@@ -21,39 +23,64 @@ import 'package:statecharts/statecharts.dart';
 
 enum HistoryDepth { SHALLOW, DEEP }
 
-class HistoryState<T> extends State<T> {
+class HistoryState<T> implements State<T> {
+  @override
+  final String? id;
   final HistoryDepth type;
   final Transition transition;
 
-  HistoryState(String? id, this.transition, [this.type = HistoryDepth.DEEP])
-      : super(id);
+  HistoryState(this.id, this.transition, [this.type = HistoryDepth.DEEP]);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
+      'Not in History pseudo-state: ${invocation.memberName}');
 }
 
 class RootState<T> extends State<T> {
-  RootState(id, substates,
-      {transitions,
+  final StateResolver<T> resolver;
+
+  factory RootState(id, substates,
+      {transitions = const [],
       onEntry,
       onExit,
-      isInitial = false,
       isFinal = false,
+      isParallel = false,
       initialTransition,
-      Iterable<String>? initialRefs})
-      : assert(substates?.isNotEmpty, 'At least one substate required'),
-        assert(
-            (initialRefs == null && initialTransition == null) ||
-                ((initialRefs == null) ^ (initialTransition == null)),
-            'Cannot use initial attribute and <initial> child simultaneously'),
-        super(id,
-            transitions: transitions ?? [],
-            onEntry: onEntry,
-            onExit: onExit,
-            initialRefs: initialRefs,
-            initialTransition: initialTransition,
-            isFinal: isFinal,
-            substates: substates);
+      resolver}) {
+    assert(substates.isNotEmpty, 'At least one substate required');
+    final root = RootState<T>._(resolver ?? StateResolver<T>(), id, transitions,
+        onEntry, onExit, isFinal, isParallel, substates, initialTransition)
+      ..completeTree();
+    root.resolver.complete(root);
+    return root;
+  }
+
+  void completeTree() {
+    var order = 1;
+    void completeNode(State<T> node) {
+      for (var s in node.substates) {
+        s.parent = node;
+        s.order = order++;
+        completeNode(s);
+      }
+    }
+
+    parent = null;
+    this.order = 0;
+    completeNode(this);
+  }
+
+  Future<State<T>?> find(String id) async => resolver.find(id);
+
+  RootState._(this.resolver, id, transitions, onEntry, onExit, isFinal,
+      isParallel, substates, initialTransition)
+      : super._(id, transitions.cast<Future<Transition<T>>>(), onEntry, onExit,
+            isFinal, isParallel, substates, initialTransition);
 }
 
 class State<T> {
+  late final int order;
+
   /// Unique identifier within its container
   final String? id;
 
@@ -67,7 +94,7 @@ class State<T> {
   final Iterable<State<T>> substates;
 
   /// Transitions from this state
-  final Iterable<Transition<T>> transitions;
+  final Iterable<Future<Transition<T>>> transitions;
 
   /// Action to be performed when this state or container is entered
   final Action<T>? onEntry;
@@ -75,27 +102,28 @@ class State<T> {
   /// Action to be performed when this state or container is exited
   final Action<T>? onExit;
 
-  final Iterable<String>? initialRefs;
-
   final Transition<T>? initialTransition;
 
-  State(this.id,
-      {this.transitions = const [],
-      this.onEntry,
-      this.onExit,
-      this.isFinal = false,
-      this.isParallel = false,
-      this.substates = const [],
-      this.initialRefs = const [],
-      this.initialTransition});
+  late final State<T>? parent;
+
+  factory State(id,
+      {Iterable<Future<Transition<T>>> transitions = const [],
+      onEntry,
+      onExit,
+      isFinal = false,
+      isParallel = false,
+      substates = const [],
+      Transition<T>? initialTransition}) {
+    return State._(id, transitions, onEntry, onExit, isFinal, isParallel,
+        substates.cast<State<T>>(), initialTransition);
+  }
+
+  State._(this.id, this.transitions, this.onEntry, this.onExit, this.isFinal,
+      this.isParallel, this.substates, this.initialTransition);
 
   @override
   int get hashCode =>
       hashObjects([id, onEntry, onExit, transitions, /* isInitial, */ isFinal]);
-
-  bool get isAtomic => substates.isEmpty;
-
-  bool get isCompound => substates.isNotEmpty;
 
   @override
   bool operator ==(Object other) =>
@@ -107,14 +135,5 @@ class State<T> {
       onExit == other.onExit &&
       initialTransition == other.initialTransition &&
       IterableEquality().equals(transitions, other.transitions) &&
-      IterableEquality().equals(substates, other.substates) &&
-      IterableEquality().equals(initialRefs, other.initialRefs);
-
-  void enter(T? context) {
-    if (onEntry != null && context != null) onEntry!(context);
-  }
-
-  void exit(T? context) {
-    if (onExit != null && context != null) onExit!(context);
-  }
+      IterableEquality().equals(substates, other.substates);
 }

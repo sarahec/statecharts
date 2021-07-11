@@ -13,21 +13,14 @@ abstract class ExecutionStep<T>
   factory ExecutionStep([void Function(ExecutionStepBuilder<T>) updates]) =
       _$ExecutionStep<T>;
 
-  factory ExecutionStep.initial(RuntimeState<T> root) {
+  factory ExecutionStep.initial(RootState<T> root) {
     final allNodes = List.of(root.toIterable, growable: false);
     // Collect all the explicit initial states
-    final initialStates = <RuntimeState<T>>{};
+    final initialStates = <State<T>>{};
     for (var s in allNodes.where((probe) => probe.isCompound)) {
-      final refs = s.initialRefs ?? s.initialTransition?.targets ?? [];
-      late final states;
-      try {
-        states =
-            refs.map((ref) => allNodes.firstWhere((probe) => probe.id == ref));
-      } catch (_) {
-        _log.warning('Could not find target of initial reference in $s');
+      if (s.initialTransition != null) {
+        initialStates.addAll(s.initialTransition!.targets);
       }
-      assert(!states.all((probe) => probe.descendsFrom(s)),
-          'ERROR: Initialization target lies outside descendents of $s');
     }
     return ExecutionStep((b) => b
       ..root = root
@@ -37,32 +30,28 @@ abstract class ExecutionStep<T>
   ExecutionStep._();
 
   @memoized
-  Set<RuntimeState<T>> get activeStates {
-    final _activeStates = <RuntimeState<T>>{};
-    for (var s in selections) {
-      _activeStates.addAll(s.ancestors());
-    }
-    for (var s in selections) {
-      _activeStates.addAll(s.activeDescendents(selections.asSet()));
-    }
+  Set<State<T>> get activeStates {
+    final _activeStates = <State<T>>{};
+    _activeStates.addAll(selections);
+    _activeStates.addAll(root.activeDescendents(selections.asSet()));
     return UnmodifiableSetView(_activeStates);
   }
 
   @memoized
-  Iterable<RuntimeState<T>> get entryStates =>
+  Iterable<State<T>> get entryStates =>
       activeStates.difference(priorStep?.activeStates ?? {}).toList()
         ..sort((a, b) => a.order - b.order);
 
   @memoized
-  Iterable<RuntimeState<T>> get exitStates => priorStep == null
+  Iterable<State<T>> get exitStates => priorStep == null
       ? []
       : (priorStep!.activeStates.difference(activeStates).toList()
         ..sort((a, b) => a.order - b.order));
 
   @memoized
-  BuiltMap<String, Iterable<RuntimeState<T>>> get history {
+  BuiltMap<String, Iterable<State<T>>> get history {
     if (priorStep == null) {
-      return BuiltMap<String, Iterable<RuntimeState<T>>>();
+      return BuiltMap<String, Iterable<State<T>>>();
     }
     final b = priorStep!.history.toBuilder();
     for (var s in exitStates.where((s) => s.containsHistoryState)) {
@@ -77,20 +66,20 @@ abstract class ExecutionStep<T>
 
   ExecutionStep<T>? get priorStep;
 
-  RuntimeState<T> get root;
+  State<T> get root;
 
-  BuiltSet<RuntimeState<T>> get selections;
+  BuiltSet<State<T>> get selections;
 
-  Iterable<RuntimeTransition<T>>? get transitions;
+  Iterable<Transition<T>>? get transitions;
 
-  Iterable<RuntimeState<T>> historyValuesFor(RuntimeState<T> s) {
+  Iterable<State<T>> historyValuesFor(State<T> s) {
     assert(s.containsHistoryState);
     assert(priorStep != null);
     // Since this is called for states that are exiting, we have to use the prior active states
     final priorActive = priorStep!.activeStates;
     final activeChildren =
         s.substates.where((probe) => priorActive.contains(probe));
-    final historyChildren = s.substates.where((probe) => probe.isHistoryState);
+    final historyChildren = s.substates.whereType<HistoryState>();
     late final deepChildren;
     // From the spec:
     // If the 'type' of a <history> element is "shallow", the SCXML processor
@@ -102,9 +91,9 @@ abstract class ExecutionStep<T>
     //
     // Note that in a conformant SCXML document, a <state> or <parallel>
     // element may have both "deep" and "shallow" <history> children.
-    final result = <RuntimeState<T>>{};
+    final result = <State<T>>{};
     for (var hs in historyChildren) {
-      if ((hs.state as HistoryState).type == HistoryDepth.SHALLOW) {
+      if (hs.type == HistoryDepth.SHALLOW) {
         result.addAll(activeChildren);
       } else {
         deepChildren ??= [
