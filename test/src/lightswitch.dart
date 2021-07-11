@@ -37,7 +37,7 @@ final stateOn = State<Lightbulb>('on',
       b.cycleCount += 1;
     });
 
-final lightswitch = RootState<Lightbulb>(
+final lightswitch = RootState.newRoot<Lightbulb>(
     'lightswitch',
     [
       stateOff,
@@ -45,7 +45,7 @@ final lightswitch = RootState<Lightbulb>(
     ],
     resolver: res);
 
-final countedLightswitch = RootState<Lightbulb>('lightswitch2', [
+final countedLightswitch = RootState.newRoot<Lightbulb>('lightswitch2', [
   State<Lightbulb>('off',
       transitions: [
         res.transition(

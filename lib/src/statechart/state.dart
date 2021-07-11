@@ -16,66 +16,59 @@
 import 'dart:async';
 
 import 'package:collection/collection.dart';
+import 'package:meta/meta.dart';
 import 'package:quiver/core.dart';
 import 'package:statecharts/statecharts.dart';
-
-// final _log = Logger('State');
-
-enum HistoryDepth { SHALLOW, DEEP }
-
-class HistoryState<T> implements State<T> {
-  @override
-  final String? id;
-  final HistoryDepth type;
-  final Transition transition;
-
-  HistoryState(this.id, this.transition, [this.type = HistoryDepth.DEEP]);
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
-      'Not in History pseudo-state: ${invocation.memberName}');
-}
 
 class RootState<T> extends State<T> {
   final StateResolver<T> resolver;
 
-  factory RootState(id, substates,
+  @visibleForTesting
+  RootState(this.resolver, id, transitions, onEntry, onExit, isFinal,
+      isParallel, substates, initialTransition)
+      : super._(id, transitions.cast<Future<Transition<T>>>(), onEntry, onExit,
+            isFinal, isParallel, substates, initialTransition);
+
+  Future<State<T>?> find(String id) async => resolver.state(id);
+
+  @visibleForTesting
+  Future<RootState<T>> finishTree() async {
+    var order = 1;
+
+    Future<void> finishNode(State<T> node) async {
+      for (var s in node.substates) {
+        s.parent = node;
+        s.order = order++;
+        await Future.wait(s.transitions).then((transitions) {
+          for (var t in transitions) {
+            t.source = s;
+          }
+        });
+        await finishNode(s);
+      }
+    }
+
+    parent = null;
+    this.order = 0;
+    await finishNode(this);
+    return this;
+  }
+
+  static Future<RootState<T>> newRoot<T>(id, substates,
       {transitions = const [],
       onEntry,
       onExit,
       isFinal = false,
       isParallel = false,
       initialTransition,
-      resolver}) {
+      resolver}) async {
     assert(substates.isNotEmpty, 'At least one substate required');
-    final root = RootState<T>._(resolver ?? StateResolver<T>(), id, transitions,
-        onEntry, onExit, isFinal, isParallel, substates, initialTransition)
-      ..completeTree();
-    root.resolver.complete(root);
-    return root;
+    var res = resolver ?? StateResolver<T>();
+    final root = RootState<T>(res, id, transitions, onEntry, onExit, isFinal,
+        isParallel, substates, initialTransition);
+    res.complete(root);
+    return Future.value(root).then((tree) => tree.finishTree());
   }
-
-  void completeTree() {
-    var order = 1;
-    void completeNode(State<T> node) {
-      for (var s in node.substates) {
-        s.parent = node;
-        s.order = order++;
-        completeNode(s);
-      }
-    }
-
-    parent = null;
-    this.order = 0;
-    completeNode(this);
-  }
-
-  Future<State<T>?> find(String id) async => resolver.find(id);
-
-  RootState._(this.resolver, id, transitions, onEntry, onExit, isFinal,
-      isParallel, substates, initialTransition)
-      : super._(id, transitions.cast<Future<Transition<T>>>(), onEntry, onExit,
-            isFinal, isParallel, substates, initialTransition);
 }
 
 class State<T> {
@@ -102,7 +95,7 @@ class State<T> {
   /// Action to be performed when this state or container is exited
   final Action<T>? onExit;
 
-  final Transition<T>? initialTransition;
+  final Future<Transition<T>>? initialTransition;
 
   late final State<T>? parent;
 
@@ -113,7 +106,7 @@ class State<T> {
       isFinal = false,
       isParallel = false,
       substates = const [],
-      Transition<T>? initialTransition}) {
+      initialTransition}) {
     return State._(id, transitions, onEntry, onExit, isFinal, isParallel,
         substates.cast<State<T>>(), initialTransition);
   }
@@ -121,9 +114,26 @@ class State<T> {
   State._(this.id, this.transitions, this.onEntry, this.onExit, this.isFinal,
       this.isParallel, this.substates, this.initialTransition);
 
+  bool get containsHistoryState => substates.any((s) => s is HistoryState<T>);
+
   @override
   int get hashCode =>
       hashObjects([id, onEntry, onExit, transitions, /* isInitial, */ isFinal]);
+
+  bool get isAtomic => substates.isEmpty;
+
+  bool get isCompound => substates.isNotEmpty;
+
+  Iterable<State<T>> get toIterable sync* {
+    Iterable<State<T>> _toIterable(State<T> node) sync* {
+      yield node;
+      for (var child in node.substates) {
+        yield* _toIterable(child);
+      }
+    }
+
+    yield* _toIterable(this);
+  }
 
   @override
   bool operator ==(Object other) =>
@@ -136,4 +146,59 @@ class State<T> {
       initialTransition == other.initialTransition &&
       IterableEquality().equals(transitions, other.transitions) &&
       IterableEquality().equals(substates, other.substates);
+
+  Iterable<State<T>> activeDescendents(Set<State<T>> selections) sync* {
+    Iterable<State<T>> _active(State<T> node) sync* {
+      yield node;
+      if (node.isAtomic) return;
+      final child =
+          node.substates.firstWhereOrNull((c) => selections.contains(c)) ??
+              node.substates.first;
+      yield* _active(child);
+    }
+
+    yield* _active(this);
+  }
+
+  /// Finds the ancestors of a state
+  ///
+  /// If [upTo] is null, returns the set of all ancestors (parents)
+  /// from this up to (and including) the top of tree (`parent == null`).
+  /// If [upTo] is not null, return all ancestors up to but *not*
+  /// including [upTo].
+  ///
+  /// Special case: the ancestor of the root state is itself (returned once).
+  Iterable<State<T>> ancestors({State<T>? upTo}) sync* {
+    if (parent == null) {
+      yield this;
+      return;
+    }
+    if (upTo != null && upTo == this) return;
+    var probe = parent;
+    while (probe != null && upTo != probe) {
+      yield probe;
+      probe = probe.parent;
+      if (probe == null) break;
+    }
+  }
+
+  void enter(T? context) {
+    if (onEntry != null && context != null) onEntry!(context);
+  }
+
+  void exit(T? context) {
+    if (onExit != null && context != null) onExit!(context);
+  }
+
+  Future<Transition<T>?> transitionFor(
+          {String? event,
+          Duration? elapsedTime,
+          T? context,
+          bool? ignoreContext = false}) async =>
+      Future.wait(transitions).then((transitionList) =>
+          transitionList.firstWhereOrNull((t) => t.matches(
+              anEvent: event,
+              elapsedTime: elapsedTime,
+              context: context,
+              ignoreContext: ignoreContext)));
 }

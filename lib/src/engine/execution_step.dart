@@ -1,32 +1,29 @@
 import 'package:built_collection/built_collection.dart';
 import 'package:built_value/built_value.dart';
 import 'package:collection/collection.dart';
-import 'package:logging/logging.dart';
 import 'package:statecharts/statecharts.dart';
 
 part 'execution_step.g.dart';
-
-final _log = Logger('execution_step');
 
 abstract class ExecutionStep<T>
     implements Built<ExecutionStep<T>, ExecutionStepBuilder<T>> {
   factory ExecutionStep([void Function(ExecutionStepBuilder<T>) updates]) =
       _$ExecutionStep<T>;
 
-  factory ExecutionStep.initial(RootState<T> root) {
-    final allNodes = List.of(root.toIterable, growable: false);
+  static Future<ExecutionStep<T>> initial<T>(RootState<T> root) async {
     // Collect all the explicit initial states
     final initialStates = <State<T>>{};
-    for (var s in allNodes.where((probe) => probe.isCompound)) {
-      if (s.initialTransition != null) {
-        initialStates.addAll(s.initialTransition!.targets);
-      }
+    for (var s in root.toIterable.where((probe) => probe.isCompound)) {
+      if (s.initialTransition == null) continue;
+      await Future.value(s.initialTransition!)
+          .then((transition) => initialStates.addAll(transition.targets));
     }
-    return ExecutionStep((b) => b
+    return ExecutionStep<T>((b) => b
       ..root = root
       ..selections.addAll(initialStates));
   }
 
+  // Required by built_value
   ExecutionStep._();
 
   @memoized
@@ -60,9 +57,10 @@ abstract class ExecutionStep<T>
     return b.build();
   }
 
-  bool get isUnchanged =>
-      priorStep != null &&
-      SetEquality().equals(selections.asSet(), priorStep!.selections.asSet());
+  @memoized
+  bool get isChanged =>
+      priorStep == null ||
+      !SetEquality().equals(selections.asSet(), priorStep!.selections.asSet());
 
   ExecutionStep<T>? get priorStep;
 

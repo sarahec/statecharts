@@ -20,19 +20,19 @@ import '../lightswitch.dart';
 
 void main() {
   var step0;
-  var tree;
+  var root;
   var rootState, onState, offState;
 
   setUp(() async {
-    tree = lightswitch;
-    step0 = ExecutionStep<Lightbulb>.initial(tree);
-    rootState = await tree.find('lightswitch');
-    onState = await tree.find('on');
-    offState = await tree.find('off');
+    root = await lightswitch;
+    step0 = await ExecutionStep.initial<Lightbulb>(root);
+    rootState = await root.find('lightswitch');
+    onState = await root.find('on');
+    offState = await root.find('off');
   });
   group('ExecutionStep', () {
     test('initialization w/ defaults', () {
-      expect(step0.root, equals(tree));
+      expect(step0.root, equals(root));
       expect(step0.activeStates, containsAll([rootState, offState]));
       expect(step0.entryStates, containsAll([rootState, offState]));
       expect(step0.exitStates, isEmpty);
@@ -41,17 +41,17 @@ void main() {
     test('add leaf state', () {
       final step1 = step0.rebuild((b) => b.selections.add(onState));
       expect(step1.activeStates, equals([rootState, onState]));
-      expect(step1.entryStates, equals([rootState, onState]));
-      expect(step1.exitStates, isEmpty);
-    }, skip: true);
+      expect(step1.entryStates, equals([onState]));
+      expect(step1.exitStates, equals([offState]));
+    });
 
     test('replace child state', () {
       final step1 = step0.rebuild((b) => b.selections
-        ..remove(onState)
+        ..remove(offState)
         ..add(onState));
-      expect(step1.activeStates, equals([rootState, offState]));
-      expect(step1.entryStates, equals([rootState, offState]));
-      expect(step1.exitStates, isEmpty);
-    }, skip: true);
+      expect(step1.activeStates, containsAll([rootState, onState]));
+      expect(step1.entryStates, equals([onState]));
+      expect(step1.exitStates, equals([offState]));
+    });
   });
 }

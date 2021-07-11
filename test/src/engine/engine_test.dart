@@ -22,25 +22,26 @@ void main() {
     Engine? engine;
     Lightbulb? bulb;
 
-    setUp(() {
+    setUp(() async {
       bulb = Lightbulb();
-      engine = Engine(lightswitch, bulb);
+      engine = await Future.value(lightswitch)
+          .then((ls) => Engine.initial<Lightbulb>(ls, bulb));
     });
 
     test('selects initial state', () {
       expect(engine!.currentStep.activeStates, containsAll([stateOff]));
     });
 
-    test("executes 'on' transition", () {
-      engine!.execute(anEvent: turnOn);
+    test("executes 'on' transition", () async {
+      await engine!.execute(anEvent: turnOn);
       expect(engine!.currentStep.activeStates, containsAll([stateOn]));
     });
 
-    test('calls onEntry', () {
+    test('calls onEntry', () async {
       expect(bulb?.isOn, isFalse);
-      engine!.execute(anEvent: turnOn);
+      await engine!.execute(anEvent: turnOn);
       expect(bulb?.isOn, isTrue);
-      engine!.execute(anEvent: turnOff);
+      await engine!.execute(anEvent: turnOff);
       expect(bulb?.isOn, isFalse);
     });
 
@@ -50,15 +51,15 @@ void main() {
       // expect(bulb!.wasOn, isFalse);
     });
 
-    test('tests entry condition in transition', () {
+    test('tests entry condition in transition', () async {
       final limit = 10;
       for (var i = 0; i < limit; i++) {
-        engine!.execute(anEvent: turnOn);
-        engine!.execute(anEvent: turnOff);
+        await engine!.execute(anEvent: turnOn);
+        await engine!.execute(anEvent: turnOff);
       }
       expect(engine!.context?.cycleCount, equals(limit));
     });
-  }, skip: true);
+  });
 
   // group('basic statechart', () {
   //   // First example from https://statecharts.github.io/what-is-a-statechart.html
