@@ -29,8 +29,15 @@ class RootState<T> extends State<T> {
       : super._(id, transitions.cast<Future<Transition<T>>>(), onEntry, onExit,
             isFinal, isParallel, substates, initialTransition);
 
-  Future<State<T>?> find(String id) async => resolver.state(id);
+  @override
+  bool operator ==(Object other) =>
+      other is RootState<T> &&
+      id == other.id &&
+      isFinal == other.isFinal &&
+      isParallel == other.isParallel &&
+      IterableEquality().equals(substates, other.substates);
 
+  Future<State<T>?> find(String id) async => resolver.state(id);
   @visibleForTesting
   Future<RootState<T>> finishTree() async {
     var order = 1;
@@ -53,6 +60,9 @@ class RootState<T> extends State<T> {
     await finishNode(this);
     return this;
   }
+
+  @override
+  String toString() => "('$id', $substates)";
 
   static Future<RootState<T>> newRoot<T>(id, substates,
       {transitions = const [],
@@ -117,8 +127,7 @@ class State<T> {
   bool get containsHistoryState => substates.any((s) => s is HistoryState<T>);
 
   @override
-  int get hashCode =>
-      hashObjects([id, onEntry, onExit, transitions, /* isInitial, */ isFinal]);
+  int get hashCode => hashObjects([id, isParallel, isFinal, substates]);
 
   bool get isAtomic => substates.isEmpty;
 
@@ -141,10 +150,6 @@ class State<T> {
       id == other.id &&
       isFinal == other.isFinal &&
       isParallel == other.isParallel &&
-      onEntry == other.onEntry &&
-      onExit == other.onExit &&
-      initialTransition == other.initialTransition &&
-      IterableEquality().equals(transitions, other.transitions) &&
       IterableEquality().equals(substates, other.substates);
 
   Iterable<State<T>> activeDescendents(Set<State<T>> selections) sync* {
@@ -189,6 +194,9 @@ class State<T> {
   void exit(T? context) {
     if (onExit != null && context != null) onExit!(context);
   }
+
+  @override
+  String toString() => "('$id', $substates)";
 
   Future<Transition<T>?> transitionFor(
           {String? event,

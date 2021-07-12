@@ -45,12 +45,6 @@ void main() {
       expect(bulb?.isOn, isFalse);
     });
 
-    test('calls onExit', () {
-      engine!.execute(anEvent: turnOn);
-      expect(bulb!.isOn, isTrue);
-      // expect(bulb!.wasOn, isFalse);
-    });
-
     test('tests entry condition in transition', () async {
       final limit = 10;
       for (var i = 0; i < limit; i++) {

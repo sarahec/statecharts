@@ -33,25 +33,32 @@ void main() {
   group('ExecutionStep', () {
     test('initialization w/ defaults', () {
       expect(step0.root, equals(root));
-      expect(step0.activeStates, containsAll([rootState, offState]));
-      expect(step0.entryStates, containsAll([rootState, offState]));
-      expect(step0.exitStates, isEmpty);
+      expect(step0.activeStates, containsAll([rootState, offState]),
+          reason: 'active states');
+      expect(step0.entryStates, containsAll([rootState, offState]),
+          reason: 'entry states');
+      expect(step0.exitStates, isEmpty, reason: 'exit states');
     });
 
     test('add leaf state', () {
-      final step1 = step0.rebuild((b) => b.selections.add(onState));
-      expect(step1.activeStates, equals([rootState, onState]));
-      expect(step1.entryStates, equals([onState]));
-      expect(step1.exitStates, equals([offState]));
+      final step1 = step0.rebuild((b) => b
+        ..selections.add(onState)
+        ..priorStep = step0.toBuilder());
+      expect(step1.activeStates, containsAll([rootState, onState]),
+          reason: 'active states');
+      expect(step1.entryStates, equals([onState]), reason: 'entry states');
+      expect(step1.exitStates, equals([offState]), reason: 'exit states');
     });
 
     test('replace child state', () {
-      final step1 = step0.rebuild((b) => b.selections
-        ..remove(offState)
-        ..add(onState));
-      expect(step1.activeStates, containsAll([rootState, onState]));
-      expect(step1.entryStates, equals([onState]));
-      expect(step1.exitStates, equals([offState]));
+      final step1 = step0.rebuild((b) => b
+        ..priorStep = step0.toBuilder()
+        ..selections.remove(offState)
+        ..selections.add(onState));
+      expect(step1.activeStates, containsAll([rootState, onState]),
+          reason: 'active states');
+      expect(step1.entryStates, equals([onState]), reason: 'entry states');
+      expect(step1.exitStates, equals([offState]), reason: 'exit states');
     });
   });
 }

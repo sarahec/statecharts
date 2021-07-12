@@ -60,6 +60,7 @@ class Engine<T> {
   ExecutionStep<T> nextStep(
       ExecutionStep<T> step, Iterable<Transition<T>> transitions) {
     final b = step.toBuilder();
+    b.priorStep = step.toBuilder();
     b.transitions = transitions;
     b.selections.removeAll(transitions.map((t) => t.source));
     b.selections.addAll(transitions.map((t) => t.targets).expand((s) => s));
