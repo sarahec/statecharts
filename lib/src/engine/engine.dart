@@ -32,7 +32,6 @@ class Engine<T> {
   ExecutionStep<T> get currentStep => _currentStep;
 
   T? applyChanges(ExecutionStep<T> step, T? context) {
-    runTransitions(step, context);
     runExitStates(step, context);
     runEntryStates(step, context);
     return context;
@@ -78,7 +77,4 @@ class Engine<T> {
       s.exit(context);
     }
   }
-
-  // TODO Implement runTransitions
-  void runTransitions(ExecutionStep<T> step, T? context) => context;
 }
