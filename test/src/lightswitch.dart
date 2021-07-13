@@ -51,7 +51,7 @@ final countedLightswitch = RootState.newRoot<Lightbulb>('lightswitch2', [
         res.transition(
             targets: ['on'],
             event: turnOn,
-            condition: (b) => b!.cycleCount < 10),
+            condition: (b) => b.cycleCount < 10),
       ],
       onEntry: (b, _) => b!.isOn = false),
   State<Lightbulb>('on',
