@@ -118,12 +118,12 @@ class State<T> {
 
   factory State(id,
       {Iterable<Future<Transition<T>>> transitions = const [],
-      onEntry,
-      onExit,
-      isFinal = false,
-      isParallel = false,
-      substates = const [],
-      initialTransition}) {
+      Action<T>? onEntry,
+      Action<T>? onExit,
+      bool isFinal = false,
+      bool isParallel = false,
+      Iterable<State<T>> substates = const [],
+      Future<Transition<T>>? initialTransition}) {
     return State._(id, transitions, onEntry, onExit, isFinal, isParallel,
         substates.cast<State<T>>(), initialTransition);
   }
@@ -194,12 +194,12 @@ class State<T> {
     }
   }
 
-  void enter(T? context) {
-    if (onEntry != null && context != null) onEntry!(context);
+  void enter(T? context, [EngineCallback? callback]) {
+    if (onEntry != null && context != null) onEntry!(context, callback);
   }
 
-  void exit(T? context) {
-    if (onExit != null && context != null) onExit!(context);
+  void exit(T? context, [EngineCallback? callback]) {
+    if (onExit != null && context != null) onExit!(context, callback);
   }
 
   @override

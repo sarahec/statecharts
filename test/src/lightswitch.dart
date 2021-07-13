@@ -27,13 +27,13 @@ final stateOff = State<Lightbulb>('off',
     transitions: [
       res.transition(targets: ['on'], event: turnOn)
     ],
-    onEntry: (b) => b.isOn = false);
+    onEntry: (b, _) => b.isOn = false);
 final stateOn = State<Lightbulb>('on',
     transitions: [
       res.transition(targets: ['off'], event: turnOff)
     ],
-    onEntry: (b) => b.isOn = true,
-    onExit: (b) {
+    onEntry: (b, _) => b.isOn = true,
+    onExit: (b, _) {
       b.cycleCount += 1;
     });
 
@@ -53,13 +53,13 @@ final countedLightswitch = RootState.newRoot<Lightbulb>('lightswitch2', [
             event: turnOn,
             condition: (b) => b.cycleCount < 10),
       ],
-      onEntry: (b) => b.isOn = false),
+      onEntry: (b, _) => b.isOn = false),
   State<Lightbulb>('on',
       transitions: [
         res.transition(targets: ['off'], event: turnOff),
       ],
-      onEntry: (b) => b.isOn = true,
-      onExit: (b) {
+      onEntry: (b, _) => b.isOn = true,
+      onExit: (b, _) {
         b.cycleCount += 1;
       }),
 ]);

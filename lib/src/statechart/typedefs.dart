@@ -13,10 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'package:statecharts/statecharts.dart';
 
 /// Used for entry and exit actions (in and out of a state or container)
-typedef Action<T> = void Function(T context);
+typedef Action<T> = void Function(T context, EngineCallback? callback);
 
 /// Used in determing whether or not to take a transition
 typedef Condition<T> = bool Function(T context);
-

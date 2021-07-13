@@ -13,13 +13,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-library statecharts;
-
-export 'src/engine/engine.dart';
-export 'src/engine/engine_callback.dart';
-export 'src/engine/execution_step.dart';
-export 'src/statechart/state.dart';
-export 'src/statechart/state_resolver.dart';
-export 'src/statechart/history_state.dart';
-export 'src/statechart/transition.dart';
-export 'src/statechart/typedefs.dart';
+/// Extend for a communications link back to a custom engine.
+abstract class EngineCallback {}
