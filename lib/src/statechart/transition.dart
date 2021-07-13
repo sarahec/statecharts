@@ -29,8 +29,9 @@ class EventTransition<T> extends Transition<T> {
       {Iterable<State<T>> targets = const [],
       required this.event,
       Condition<T>? condition,
-      type = TransitionType.External})
-      : super._(targets, condition, type);
+      type = TransitionType.External,
+      Action<T>? action})
+      : super._(targets, condition, type, action);
 
   @override
   int get hashCode => hash4(event, targets, condition, type);
@@ -67,8 +68,9 @@ class NonEventTransition<T> extends Transition<T> {
       {Iterable<State<T>> targets = const [],
       this.after,
       Condition<T>? condition,
-      type = TransitionType.External})
-      : super._(targets, condition, type);
+      type = TransitionType.External,
+      Action<T>? action})
+      : super._(targets, condition, type, action);
 
   @override
   int get hashCode => hash4(targets, after, condition, type);
@@ -96,20 +98,30 @@ abstract class Transition<T> {
   final Iterable<State<T>> targets;
   final TransitionType type;
   late final State<T>? source;
+  final Action<T>? action;
 
   factory Transition(
           {Iterable<State<T>> targets = const [],
           String? event,
           Condition<T>? condition,
           Duration? after,
-          type = TransitionType.External}) =>
+          type = TransitionType.External,
+          Action<T>? action}) =>
       event != null
           ? EventTransition<T>(
-              event: event, targets: targets, condition: condition, type: type)
+              event: event,
+              targets: targets,
+              condition: condition,
+              type: type,
+              action: action)
           : NonEventTransition<T>(
-              after: after, targets: targets, condition: condition, type: type);
+              after: after,
+              targets: targets,
+              condition: condition,
+              type: type,
+              action: action);
 
-  Transition._(this.targets, this.condition, this.type);
+  Transition._(this.targets, this.condition, this.type, this.action);
 
   @override
   int get hashCode => hash3(condition, targets, type);

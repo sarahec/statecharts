@@ -19,21 +19,18 @@ class Engine<T> {
   final RootState<T> root;
   T? _context;
   ExecutionStep<T> _currentStep;
+  final EngineCallback? callback;
 
-  Engine(this.root, this._context, this._currentStep);
-
-  static Future<Engine<T>> initial<T>(RootState<T> root, T? context) async {
-    final step0 = await ExecutionStep.initial<T>(root);
-    return Engine(root, context, step0);
-  }
+  Engine(this.root, this._context, this._currentStep, [this.callback]);
 
   T? get context => _context;
 
   ExecutionStep<T> get currentStep => _currentStep;
 
   T? applyChanges(ExecutionStep<T> step, T? context) {
-    runExitStates(step, context);
-    runEntryStates(step, context);
+    runTransitions(step.transitions ?? [], context, callback);
+    runExitStates(step, context, callback);
+    runEntryStates(step, context, callback);
     return context;
   }
 
@@ -66,15 +63,30 @@ class Engine<T> {
     return b.build();
   }
 
-  void runEntryStates(ExecutionStep<T> step, T? context) {
+  void runEntryStates(ExecutionStep<T> step, T? context,
+      [EngineCallback? callback]) {
     for (var s in step.entryStates) {
       s.enter(context);
     }
   }
 
-  void runExitStates(ExecutionStep<T> step, T? context) {
+  void runExitStates(ExecutionStep<T> step, T? context,
+      [EngineCallback? callback]) {
     for (var s in step.exitStates) {
       s.exit(context);
     }
+  }
+
+  void runTransitions(Iterable<Transition<T>> transitions, T? context,
+      [EngineCallback? callback]) {
+    for (var t in transitions) {
+      if (t.action != null) t.action!(context, callback);
+    }
+  }
+
+  static Future<Engine<T>> initial<T>(RootState<T> root, T? context,
+      [EngineCallback? callback]) async {
+    final step0 = await ExecutionStep.initial<T>(root);
+    return Engine(root, context, step0, callback);
   }
 }
