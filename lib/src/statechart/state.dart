@@ -22,6 +22,7 @@ import 'package:statecharts/statecharts.dart';
 
 class RootState<T> extends State<T> {
   final StateResolver<T> resolver;
+  var _stateMap;
 
   @visibleForTesting
   RootState(this.resolver, id, transitions, onEntry, onExit, isFinal,
@@ -37,7 +38,13 @@ class RootState<T> extends State<T> {
       isParallel == other.isParallel &&
       IterableEquality().equals(substates, other.substates);
 
-  Future<State<T>?> find(String id) async => resolver.state(id);
+  State<T>? find(String id) {
+    _stateMap ??= {
+      for (var s in toIterable.where((s1) => s1.id != null)) s.id!: s
+    };
+    return _stateMap[id];
+  }
+
   @visibleForTesting
   Future<RootState<T>> finishTree() async {
     var order = 1;

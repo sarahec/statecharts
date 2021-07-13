@@ -27,10 +27,8 @@ class StateResolver<T> {
 
   void complete(RootState<T> root) => _completer.complete(root);
 
-  Future<State<T>?> state(String id) async => root
-          .then((r) => {for (var s in r.toIterable) s.id!: s})
-          .then((map) => map[id])
-          .then((result) {
+  Future<State<T>?> state(String id) async =>
+      root.then((r) => r.find(id)).then((result) {
         if (result == null) {
           _log.warning("Could not find id '$id'");
         }

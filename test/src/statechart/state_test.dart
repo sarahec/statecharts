@@ -30,13 +30,4 @@ void main() {
 
     test('is not atomic', () => expect(a.isAtomic, isFalse));
   });
-
-  /* 
-  group('initial state', () {
-    test('first substate is implicit initial state', () {
-      final singularity = State('singularity', substates: [State('one')]);
-      expect(singularity.initialSubstate.id, equals('one'));
-    });
-  });
-  */
 }
