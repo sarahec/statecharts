@@ -1,3 +1,5 @@
+// @dart=2.9
+
 library scxml;
 
 export 'src/xml.dart';

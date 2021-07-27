@@ -50,7 +50,7 @@ Future<AssignElement> extractAssignElement(StreamQueue<XmlEvent> events) async {
   _log.finest('in assign');
 
   final location = await _assignElement.attribute<String>('location');
-  final expr = await _assignElement.attribute<String>('expr');
+  final expr = await _assignElement.optionalAttribute<String>('expr');
 
   await events.consume(inside(_assignElement));
   return AssignElement(location: location, expr: expr);
@@ -64,8 +64,9 @@ Future<CancelElement> extractCancelElement(StreamQueue<XmlEvent> events) async {
   final _cancelElement = await events.next as XmlStartElementEvent;
   _log.finest('in cancel');
 
-  final sendId = await _cancelElement.attribute<String>('sendid');
-  final sendIdExpr = await _cancelElement.attribute<String>('sendidexpr');
+  final sendId = await _cancelElement.optionalAttribute<String>('sendid');
+  final sendIdExpr =
+      await _cancelElement.optionalAttribute<String>('sendidexpr');
 
   await events.consume(inside(_cancelElement));
   return CancelElement(sendId: sendId, sendIdExpr: sendIdExpr);
@@ -80,8 +81,8 @@ Future<ContentElement> extractContentElement(
   final _contentElement = await events.next as XmlStartElementEvent;
   _log.finest('in content');
 
-  final expr = await _contentElement.attribute<String>('expr');
-  final body = await _contentElement.attribute<String>('body');
+  final expr = await _contentElement.optionalAttribute<String>('expr');
+  final body = await _contentElement.optionalAttribute<String>('body');
 
   await events.consume(inside(_contentElement));
   return ContentElement(expr: expr, body: body);
@@ -96,8 +97,8 @@ Future<DataElement> extractDataElement(StreamQueue<XmlEvent> events) async {
   _log.finest('in data');
 
   final id = await _dataElement.attribute<String>('id');
-  final src = await _dataElement.attribute<Uri>('src');
-  final expr = await _dataElement.attribute<String>('expr');
+  final src = await _dataElement.optionalAttribute<Uri>('src');
+  final expr = await _dataElement.optionalAttribute<String>('expr');
 
   await events.consume(inside(_dataElement));
   return DataElement(id: id, src: src, expr: expr);
@@ -194,7 +195,7 @@ Future<FinalStateElement> extractFinalStateElement(
   final _finalStateElement = await events.next as XmlStartElementEvent;
   _log.finest('in final');
 
-  final id = await _finalStateElement.attribute<String>('id');
+  final id = await _finalStateElement.optionalAttribute<String>('id');
 
   var onEntry;
   var onExit;
@@ -246,7 +247,7 @@ Future<ForEachElement> extractForEachElement(
 
   final arraySrc = await _forEachElement.attribute<String>('arraySrc');
   final item = await _forEachElement.attribute<String>('item');
-  final index = await _forEachElement.attribute<String>('index');
+  final index = await _forEachElement.optionalAttribute<String>('index');
 
   await events.consume(inside(_forEachElement));
   return ForEachElement(arraySrc: arraySrc, item: item, index: index);
@@ -261,7 +262,7 @@ Future<HistoryElement> extractHistoryElement(
   final _historyElement = await events.next as XmlStartElementEvent;
   _log.finest('in history');
 
-  final id = await _historyElement.attribute<String>('id');
+  final id = await _historyElement.optionalAttribute<String>('id');
   final type =
       await _historyElement.optionalAttribute<String>('type') ?? 'shallow';
 
@@ -342,14 +343,16 @@ Future<InvokeElement> extractInvokeElement(StreamQueue<XmlEvent> events) async {
   final _invokeElement = await events.next as XmlStartElementEvent;
   _log.finest('in invoke');
 
-  final type = await _invokeElement.attribute<Uri>('type');
-  final typeExpr = await _invokeElement.attribute<String>('typeexpr');
-  final src = await _invokeElement.attribute<Uri>('src');
-  final srcExpr = await _invokeElement.attribute<String>('srcexpr');
-  final id = await _invokeElement.attribute<String>('id');
-  final idLocation = await _invokeElement.attribute<String>('idlocation');
-  final nameList = await _invokeElement.attribute<String>('namelist');
-  final autoForward = await _invokeElement.attribute<bool>('autoforward',
+  final type = await _invokeElement.optionalAttribute<Uri>('type');
+  final typeExpr = await _invokeElement.optionalAttribute<String>('typeexpr');
+  final src = await _invokeElement.optionalAttribute<Uri>('src');
+  final srcExpr = await _invokeElement.optionalAttribute<String>('srcexpr');
+  final id = await _invokeElement.optionalAttribute<String>('id');
+  final idLocation =
+      await _invokeElement.optionalAttribute<String>('idlocation');
+  final nameList = await _invokeElement.optionalAttribute<String>('namelist');
+  final autoForward = await _invokeElement.optionalAttribute<bool>(
+      'autoforward',
       convert: Convert.ifEquals('true'));
 
   var param;
@@ -397,7 +400,7 @@ Future<LogElement> extractLogElement(StreamQueue<XmlEvent> events) async {
   _log.finest('in log');
 
   final label = await _logElement.optionalAttribute<String>('label') ?? '';
-  final expr = await _logElement.attribute<String>('expr');
+  final expr = await _logElement.optionalAttribute<String>('expr');
 
   await events.consume(inside(_logElement));
   return LogElement(label: label, expr: expr);
@@ -461,7 +464,7 @@ Future<ParallelElement> extractParallelElement(
   final _parallelElement = await events.next as XmlStartElementEvent;
   _log.finest('in parallel');
 
-  final id = await _parallelElement.attribute<String>('id');
+  final id = await _parallelElement.optionalAttribute<String>('id');
 
   var onEntry;
   var onExit;
@@ -516,8 +519,8 @@ Future<ParamElement> extractParamElement(StreamQueue<XmlEvent> events) async {
   _log.finest('in param');
 
   final name = await _paramElement.attribute<String>('name');
-  final expr = await _paramElement.attribute<String>('expr');
-  final location = await _paramElement.attribute<String>('location');
+  final expr = await _paramElement.optionalAttribute<String>('expr');
+  final location = await _paramElement.optionalAttribute<String>('location');
 
   await events.consume(inside(_paramElement));
   return ParamElement(name: name, expr: expr, location: location);
@@ -545,8 +548,8 @@ Future<SCXMLElement> extractSCXMLElement(StreamQueue<XmlEvent> events) async {
   final _sCXMLElement = await events.next as XmlStartElementEvent;
   _log.finest('in scxml');
 
-  final initial = await _sCXMLElement.attribute<String>('initial');
-  final name = await _sCXMLElement.attribute<String>('name');
+  final initial = await _sCXMLElement.optionalAttribute<String>('initial');
+  final name = await _sCXMLElement.optionalAttribute<String>('name');
   final namespace =
       await _sCXMLElement.optionalAttribute<String>('xmlns') ?? NAMESPACE;
   final version =
@@ -555,7 +558,7 @@ Future<SCXMLElement> extractSCXMLElement(StreamQueue<XmlEvent> events) async {
       await _sCXMLElement.optionalAttribute<String>('datamodel') ?? 'null';
   final binding =
       await _sCXMLElement.optionalAttribute<String>('binding') ?? 'early';
-  final script = await _sCXMLElement.attribute<String>('script');
+  final script = await _sCXMLElement.optionalAttribute<String>('script');
 
   var body = <StateBase>[];
   var datamodel;
@@ -622,17 +625,17 @@ Future<SendElement> extractSendElement(StreamQueue<XmlEvent> events) async {
   final _sendElement = await events.next as XmlStartElementEvent;
   _log.finest('in send');
 
-  final event = await _sendElement.attribute<String>('event');
-  final eventExpr = await _sendElement.attribute<String>('eventexpr');
-  final target = await _sendElement.attribute<Uri>('target');
-  final targetExpr = await _sendElement.attribute<String>('targetexpr');
-  final type = await _sendElement.attribute<Uri>('type');
-  final typeExpr = await _sendElement.attribute<String>('typeexpr');
-  final id = await _sendElement.attribute<String>('id');
-  final idLocation = await _sendElement.attribute<String>('idlocation');
-  final delay = await _sendElement.attribute<String>('delay');
-  final delayExpr = await _sendElement.attribute<String>('delayexpr');
-  final namelist = await _sendElement.attribute<String>('namelist');
+  final event = await _sendElement.optionalAttribute<String>('event');
+  final eventExpr = await _sendElement.optionalAttribute<String>('eventexpr');
+  final target = await _sendElement.optionalAttribute<Uri>('target');
+  final targetExpr = await _sendElement.optionalAttribute<String>('targetexpr');
+  final type = await _sendElement.optionalAttribute<Uri>('type');
+  final typeExpr = await _sendElement.optionalAttribute<String>('typeexpr');
+  final id = await _sendElement.optionalAttribute<String>('id');
+  final idLocation = await _sendElement.optionalAttribute<String>('idlocation');
+  final delay = await _sendElement.optionalAttribute<String>('delay');
+  final delayExpr = await _sendElement.optionalAttribute<String>('delayexpr');
+  final namelist = await _sendElement.optionalAttribute<String>('namelist');
 
   var parameters = <ParamElement>[];
   var contents = <ContentElement>[];
@@ -676,8 +679,8 @@ Future<StateElement> extractStateElement(StreamQueue<XmlEvent> events) async {
   final _stateElement = await events.next as XmlStartElementEvent;
   _log.finest('in state');
 
-  final id = await _stateElement.attribute<String>('id');
-  final initial = await _stateElement.attribute<String>('initial');
+  final id = await _stateElement.optionalAttribute<String>('id');
+  final initial = await _stateElement.optionalAttribute<String>('initial');
 
   var onEntry;
   var onExit;
@@ -751,9 +754,9 @@ Future<TransitionElement> extractTransitionElement(
   final _transitionElement = await events.next as XmlStartElementEvent;
   _log.finest('in transition');
 
-  final event = await _transitionElement.attribute<String>('event');
-  final cond = await _transitionElement.attribute<String>('cond');
-  final target = await _transitionElement.attribute<String>('target');
+  final event = await _transitionElement.optionalAttribute<String>('event');
+  final cond = await _transitionElement.optionalAttribute<String>('cond');
+  final target = await _transitionElement.optionalAttribute<String>('target');
   final type =
       await _transitionElement.optionalAttribute<String>('type') ?? 'external';
 
