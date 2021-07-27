@@ -23,19 +23,19 @@ final _log = Logger('SCXML');
 
 abstract class StateBase {
   @alias('onentry')
-  final OnEntryElement onEntry;
+  final OnEntryElement? onEntry;
   @alias('onexit')
-  final OnExitElement onExit;
+  final OnExitElement? onExit;
 
   bool get isAtomic;
 
-  StateBase({@required this.onEntry, @required this.onExit});
+  StateBase({required this.onEntry, required this.onExit});
 }
 
 @tag('scxml')
 class SCXMLElement {
-  final String initial;
-  final String name;
+  final String? initial;
+  final String? name;
   @alias('xmlns')
   final String namespace;
   final double version;
@@ -44,8 +44,8 @@ class SCXMLElement {
   final String binding;
 
   final List<StateBase> body;
-  final DatamodelElement datamodel;
-  final String script;
+  final DatamodelElement? datamodel;
+  final String? script;
 
   SCXMLElement(this.body,
       {this.initial,
@@ -79,17 +79,17 @@ abstract class ParallelChild {}
 
 @tag('state')
 class StateElement extends StateBase with ParallelChild {
-  final String id;
-  final String initial;
-  final TransitionElement transition;
+  final String? id;
+  final String? initial;
+  final TransitionElement? transition;
 
   @alias('initial')
-  final InitialStateElement initialState;
-  final List<StateBase> body;
-  final HistoryElement history;
+  final InitialStateElement? initialState;
+  final List<StateBase>? body;
+  final HistoryElement? history;
 
-  final DatamodelElement datamodel;
-  final InvokeElement invoke;
+  final DatamodelElement? datamodel;
+  final InvokeElement? invoke;
 
   StateElement(
       {this.id,
@@ -110,12 +110,12 @@ class StateElement extends StateBase with ParallelChild {
 
 @tag('parallel')
 class ParallelElement extends StateBase with ParallelChild {
-  final String id;
-  final TransitionElement transition;
-  List<ParallelChild> body;
-  final HistoryElement history;
-  final DatamodelElement datamodel;
-  final InvokeElement invoke;
+  final String? id;
+  final TransitionElement? transition;
+  List<ParallelChild>? body;
+  final HistoryElement? history;
+  final DatamodelElement? datamodel;
+  final InvokeElement? invoke;
 
   @override
   bool get isAtomic => false;
@@ -133,17 +133,17 @@ class ParallelElement extends StateBase with ParallelChild {
 
 @tag('initial')
 class InitialStateElement {
-  final TransitionElement transition;
+  final TransitionElement? transition;
 
-  InitialStateElement({@required this.transition});
+  InitialStateElement({required this.transition});
 }
 
 @tag('final')
 class FinalStateElement extends StateBase {
-  final String id;
+  final String? id;
 
   @alias('donedata')
-  final DoneDataElement doneData;
+  final DoneDataElement? doneData;
 
   FinalStateElement({this.id, onEntry, onExit, this.doneData})
       : super(onEntry: onEntry, onExit: onExit);
@@ -154,20 +154,20 @@ class FinalStateElement extends StateBase {
 
 @tag('transition')
 class TransitionElement {
-  final String event;
-  final String cond;
-  final String target;
+  final String? event;
+  final String? cond;
+  final String? target;
   final String type;
 
   TransitionElement(
       {this.event, this.cond, this.target, this.type = 'external'});
-  List<ExecutableContent> children;
+  List<ExecutableContent>? children;
 }
 
 @tag('donedata')
 class DoneDataElement {
-  final ContentElement content;
-  final List<ParamElement> params;
+  final ContentElement? content;
+  final List<ParamElement>? params;
 
   DoneDataElement({this.content, this.params});
 }
@@ -175,24 +175,24 @@ class DoneDataElement {
 @tag('param')
 class ParamElement {
   final String name;
-  final String expr;
-  final String location;
+  final String? expr;
+  final String? location;
 
-  ParamElement({@required this.name, this.expr, this.location});
+  ParamElement({required this.name, this.expr, this.location});
 }
 
 @tag('content')
 class ContentElement {
-  final String expr;
+  final String? expr;
   // TODO Define @xml() annotation
-  final String body;
+  final String? body;
 
   ContentElement({this.expr, this.body});
 }
 
 @tag('datamodel')
 class DatamodelElement {
-  final List<DataElement> data;
+  final List<DataElement>? data;
 
   DatamodelElement({this.data});
 }
@@ -200,34 +200,34 @@ class DatamodelElement {
 @tag('data')
 class DataElement {
   final String id;
-  final Uri src;
-  final String expr;
+  final Uri? src;
+  final String? expr;
 
   // TODO Implement contents
 
-  DataElement({@required this.id, this.src, this.expr});
+  DataElement({required this.id, this.src, this.expr});
 }
 
 @tag('invoke')
 class InvokeElement {
-  final Uri type;
+  final Uri? type;
   @alias('typeexpr')
-  final String typeExpr;
-  final Uri src;
+  final String? typeExpr;
+  final Uri? src;
   @alias('srcexpr')
-  final String srcExpr;
-  final String id;
+  final String? srcExpr;
+  final String? id;
   @alias('idlocation')
-  final String idLocation;
+  final String? idLocation;
   @alias('namelist')
-  final String nameList;
+  final String? nameList;
   @ifEquals('true')
   @alias('autoforward')
-  final bool autoForward;
+  final bool? autoForward;
 
-  final ParamElement param;
-  final FinalizeElement finalize;
-  final ContentElement content;
+  final ParamElement? param;
+  final FinalizeElement? finalize;
+  final ContentElement? content;
 
   InvokeElement(
       {this.type,
@@ -248,11 +248,11 @@ class FinalizeElement {}
 
 @tag('history')
 class HistoryElement {
-  final String id;
+  final String? id;
   final String type; // enum: 'deep' or 'shallow'
-  final TransitionElement transition;
+  final TransitionElement? transition;
 
-  HistoryElement({this.id, this.type = 'shallow', @required this.transition});
+  HistoryElement({this.id, this.type = 'shallow', required this.transition});
 }
 
 // -----------------------------------------
@@ -264,7 +264,7 @@ abstract class ExecutableContent {}
 class RaiseElement implements ExecutableContent {
   final String event;
 
-  RaiseElement({@required this.event});
+  RaiseElement({required this.event});
 }
 
 @tag('if')
@@ -279,7 +279,7 @@ class IfElement implements ExecutableContent {
 class ElseIfElement implements ExecutableContent {
   final String cond;
 
-  ElseIfElement({@required this.cond});
+  ElseIfElement({required this.cond});
 }
 
 @tag('else')
@@ -289,15 +289,15 @@ class ElseElement implements ExecutableContent {}
 class ForEachElement implements ExecutableContent {
   final String arraySrc;
   final String item;
-  final String index;
+  final String? index;
 
-  ForEachElement({@required this.arraySrc, @required this.item, this.index});
+  ForEachElement({required this.arraySrc, required this.item, this.index});
 }
 
 @tag('log')
 class LogElement implements ExecutableContent {
   final String label;
-  final String expr;
+  final String? expr;
 
   LogElement({this.label = '', this.expr});
 }
@@ -305,9 +305,9 @@ class LogElement implements ExecutableContent {
 @tag('assign')
 class AssignElement implements ExecutableContent {
   final String location;
-  final String expr;
+  final String? expr;
 
-  AssignElement({@required this.location, this.expr});
+  AssignElement({required this.location, this.expr});
 
   // TODO implement children
 }
@@ -324,25 +324,25 @@ class ScriptElement implements ExecutableContent {
 
 @tag('send')
 class SendElement implements ExecutableContent {
-  final String event;
+  final String? event;
   @alias('eventexpr')
-  final String eventExpr;
-  final Uri target;
+  final String? eventExpr;
+  final Uri? target;
   @alias('targetexpr')
-  final String targetExpr;
-  final Uri type;
+  final String? targetExpr;
+  final Uri? type;
   @alias('typeexpr')
-  final String typeExpr;
-  final String id;
+  final String? typeExpr;
+  final String? id;
   @alias('idlocation')
-  final String idLocation;
-  final String delay;
+  final String? idLocation;
+  final String? delay;
   @alias('delayexpr')
-  final String delayExpr;
-  final String namelist;
+  final String? delayExpr;
+  final String? namelist;
 
-  final List<ParamElement> parameters;
-  final List<ContentElement> contents;
+  final List<ParamElement>? parameters;
+  final List<ContentElement>? contents;
 
   SendElement(
       {this.event,
@@ -363,9 +363,9 @@ class SendElement implements ExecutableContent {
 @tag('cancel')
 class CancelElement implements ExecutableContent {
   @alias('sendid')
-  final String sendId;
+  final String? sendId;
   @alias('sendidexpr')
-  final String sendIdExpr;
+  final String? sendIdExpr;
 
   CancelElement({this.sendId, this.sendIdExpr});
 }
