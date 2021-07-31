@@ -7,10 +7,9 @@
 import 'dart:async';
 import 'package:async/async.dart';
 import 'package:xml/xml_events.dart';
-import 'xml.dart';
+import 'statechart.dart';
 import 'dart:core';
 import 'package:logging/logging.dart';
-import 'package:meta/meta.dart';
 import 'package:logging/logging.dart';
 import 'package:ixp_runtime/ixp_runtime.dart';
 
@@ -297,8 +296,45 @@ Future<IfElement> extractIfElement(StreamQueue<XmlEvent> events) async {
   while (await events.scanTo(startTag(inside(_ifElement)))) {
     final probe = await events.peek as XmlStartElementEvent;
     switch (probe.qualifiedName) {
-      // No methods found for ExecutableContent
+      case RaiseElementName:
+        block.add(await extractRaiseElement(events));
+        break;
 
+      case IfElementName:
+        block.add(await extractIfElement(events));
+        break;
+
+      case ElseIfElementName:
+        block.add(await extractElseIfElement(events));
+        break;
+
+      case ElseElementName:
+        block.add(await extractElseElement(events));
+        break;
+
+      case ForEachElementName:
+        block.add(await extractForEachElement(events));
+        break;
+
+      case LogElementName:
+        block.add(await extractLogElement(events));
+        break;
+
+      case AssignElementName:
+        block.add(await extractAssignElement(events));
+        break;
+
+      case ScriptElementName:
+        block.add(await extractScriptElement(events));
+        break;
+
+      case SendElementName:
+        block.add(await extractSendElement(events));
+        break;
+
+      case CancelElementName:
+        block.add(await extractCancelElement(events));
+        break;
       default:
         probe.logUnknown(expected: IfElementName);
         await events.next;
@@ -419,8 +455,45 @@ Future<OnEntryElement> extractOnEntryElement(
   while (await events.scanTo(startTag(inside(_onEntryElement)))) {
     final probe = await events.peek as XmlStartElementEvent;
     switch (probe.qualifiedName) {
-      // No methods found for ExecutableContent
+      case RaiseElementName:
+        body.add(await extractRaiseElement(events));
+        break;
 
+      case IfElementName:
+        body.add(await extractIfElement(events));
+        break;
+
+      case ElseIfElementName:
+        body.add(await extractElseIfElement(events));
+        break;
+
+      case ElseElementName:
+        body.add(await extractElseElement(events));
+        break;
+
+      case ForEachElementName:
+        body.add(await extractForEachElement(events));
+        break;
+
+      case LogElementName:
+        body.add(await extractLogElement(events));
+        break;
+
+      case AssignElementName:
+        body.add(await extractAssignElement(events));
+        break;
+
+      case ScriptElementName:
+        body.add(await extractScriptElement(events));
+        break;
+
+      case SendElementName:
+        body.add(await extractSendElement(events));
+        break;
+
+      case CancelElementName:
+        body.add(await extractCancelElement(events));
+        break;
       default:
         probe.logUnknown(expected: OnEntryElementName);
         await events.next;
@@ -443,8 +516,45 @@ Future<OnExitElement> extractOnExitElement(StreamQueue<XmlEvent> events) async {
   while (await events.scanTo(startTag(inside(_onExitElement)))) {
     final probe = await events.peek as XmlStartElementEvent;
     switch (probe.qualifiedName) {
-      // No methods found for ExecutableContent
+      case RaiseElementName:
+        body.add(await extractRaiseElement(events));
+        break;
 
+      case IfElementName:
+        body.add(await extractIfElement(events));
+        break;
+
+      case ElseIfElementName:
+        body.add(await extractElseIfElement(events));
+        break;
+
+      case ElseElementName:
+        body.add(await extractElseElement(events));
+        break;
+
+      case ForEachElementName:
+        body.add(await extractForEachElement(events));
+        break;
+
+      case LogElementName:
+        body.add(await extractLogElement(events));
+        break;
+
+      case AssignElementName:
+        body.add(await extractAssignElement(events));
+        break;
+
+      case ScriptElementName:
+        body.add(await extractScriptElement(events));
+        break;
+
+      case SendElementName:
+        body.add(await extractSendElement(events));
+        break;
+
+      case CancelElementName:
+        body.add(await extractCancelElement(events));
+        break;
       default:
         probe.logUnknown(expected: OnExitElementName);
         await events.next;
