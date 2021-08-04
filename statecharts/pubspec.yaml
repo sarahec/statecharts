@@ -26,6 +26,7 @@ dependencies:
   built_value: ^8.0.0
   collection: ^1.15.0 
   logging: ^1.0.0
+  meta: ^1.7.0
   ordered_set: ^3.0.0
   meta: ^1.7.0
   quiver: ^3.0.0
