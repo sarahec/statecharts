@@ -75,7 +75,7 @@ class Engine<T> {
     return step_n.isChanged;
   }
 
-  /// Locates the transcations used by [execute].
+  /// Locates the transactions used by [execute].
   Future<Iterable<Transition<T>>> getTransitions(ExecutionStep<T> step,
           String? anEvent, Duration? elapsedTime, T? context) async =>
       [
@@ -120,8 +120,8 @@ class Engine<T> {
   }
 
   /// Creates an engine with its first execution step.
-  static Future<Engine<T>> initial<T>(RootState<T> root, T? context,
-      [EngineCallback? callback]) async {
+  static Future<Engine<T>> initial<T>(RootState<T> root,
+      {T? context, EngineCallback? callback}) async {
     final step0 = await ExecutionStep.initial<T>(root);
     return Engine(root, context, step0, callback);
   }

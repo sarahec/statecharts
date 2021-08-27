@@ -30,9 +30,10 @@ class HistoryState<T> implements State<T> {
   final HistoryDepth type;
 
   /// Specifies the default active states if none found in the history.
-  final Transition transition;
+  final Future<Transition<T>> transition;
 
-  HistoryState(this.id, this.transition, [this.type = HistoryDepth.DEEP]);
+  HistoryState(this.id,
+      {required this.transition, this.type = HistoryDepth.DEEP});
 
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(

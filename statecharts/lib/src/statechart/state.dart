@@ -108,8 +108,9 @@ class RootState<T> extends State<T> {
   String toString() => "('$id', $substates)";
 
   /// Create the root node.
-  static Future<RootState<T>> newRoot<T>(id, substates,
-      {transitions = const [],
+  static Future<RootState<T>> newRoot<T>(id,
+      {required substates,
+      transitions = const [],
       onEntry,
       onExit,
       isFinal = false,
