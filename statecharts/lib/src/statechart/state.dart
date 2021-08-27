@@ -107,7 +107,7 @@ class RootState<T> extends State<T> {
   @override
   String toString() => "('$id', $substates)";
 
-  /// Create the root node. This
+  /// Create the root node.
   static Future<RootState<T>> newRoot<T>(id, substates,
       {transitions = const [],
       onEntry,
