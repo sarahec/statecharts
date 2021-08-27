@@ -24,3 +24,8 @@ doc/api/
 *.generated.dart
 .fvm/flutter_sdk
 .fvm/fvm_config.json
+
+# Code coverage
+lcov.info
+coverage
+.tempCoverageDir

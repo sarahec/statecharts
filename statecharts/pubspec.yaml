@@ -33,5 +33,6 @@ dependencies:
 dev_dependencies:
   build_runner: ^2.0.6
   built_value_generator: ^8.1.0
+  coverage: ^1.0.3
   pedantic: ^1.4.0
   test: ^1.16.8
