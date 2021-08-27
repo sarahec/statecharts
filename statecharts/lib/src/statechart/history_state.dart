@@ -32,10 +32,46 @@ class HistoryState<T> implements State<T> {
   /// Specifies the default active states if none found in the history.
   final Future<Transition<T>> transition;
 
+  /// Index into its parent's substates
+  @override
+  late final int order;
+
+  /// This node's parent (assigned late)
+  @override
+  late final State<T>? parent;
+
   HistoryState(this.id,
       {required this.transition, this.type = HistoryDepth.DEEP});
 
+  /// No-op in a history state.
+  @override
+  void enter(T? context, [EngineCallback? callback]) {}
+
+  /// No-op in a history state.
+  @override
+  void exit(T? context, [EngineCallback? callback]) {}
+
+  @override
+  bool get isAtomic => true;
+
+  /// True if this has at least one substate.
+  @override
+  bool get isCompound => false;
+
+  /// States contained within this one
+  @override
+  Iterable<State<T>> get substates => [];
+
+  /// All transitions from this state.
+  @override
+  Iterable<Future<Transition<T>>> get transitions => [transition];
+
+  /// Report on unimplemented methods.
+  ///
+  /// Most methods and fields don't apply to a `HistoryState`, so implement
+  /// only the necessary ones and signal a problem anytime we use an
+  /// unimplemented one.
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
-      'Not in History pseudo-state: ${invocation.memberName}');
+      'Not implemented in History pseudo-state: ${invocation.memberName}');
 }
