@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'package:meta/meta.dart';
 import 'package:statecharts/statecharts.dart';
 
 /// Steps through the statechart, calling the [State.onEntry] and [State.onExit]
@@ -51,6 +52,7 @@ class Engine<T> {
   ExecutionStep<T> get currentStep => _currentStep;
 
   /// Runs transitions, [State.onEntry], and [State.onExit] for the current context.
+  @visibleForOverriding
   T? applyChanges(ExecutionStep<T> step, T? context) {
     runTransitions(step.transitions ?? [], context, callback);
     runExitStates(step, context, callback);
@@ -76,6 +78,7 @@ class Engine<T> {
   }
 
   /// Locates the transactions used by [execute].
+  @visibleForOverriding
   Future<Iterable<Transition<T>>> getTransitions(ExecutionStep<T> step,
           String? anEvent, Duration? elapsedTime, T? context) async =>
       [
@@ -85,6 +88,7 @@ class Engine<T> {
       ].where((t) => t != null).cast<Transition<T>>();
 
   /// Calculates the next step from the previous step and identified transitions.
+  @visibleForOverriding
   ExecutionStep<T> nextStep(
       ExecutionStep<T> step, Iterable<Transition<T>> transitions) {
     final b = step.toBuilder();
@@ -96,6 +100,7 @@ class Engine<T> {
   }
 
   /// Calls [State.onEntry] on the step's entry states.
+  @visibleForOverriding
   void runEntryStates(ExecutionStep<T> step, T? context,
       [EngineCallback? callback]) {
     for (var s in step.entryStates) {
@@ -104,6 +109,7 @@ class Engine<T> {
   }
 
   /// Calls [State.onExit] on the step's exit states.
+  @visibleForOverriding
   void runExitStates(ExecutionStep<T> step, T? context,
       [EngineCallback? callback]) {
     for (var s in step.exitStates) {
@@ -112,6 +118,7 @@ class Engine<T> {
   }
 
   /// Runs [Transition.action] for the selected transitions.
+  @visibleForOverriding
   void runTransitions(Iterable<Transition<T>> transitions, T? context,
       [EngineCallback? callback]) {
     for (var t in transitions) {
