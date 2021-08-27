@@ -15,7 +15,7 @@
 import 'package:statecharts/statecharts.dart';
 import 'package:test/test.dart';
 
-import '../lightswitch.dart';
+import '../examples/lightswitch.dart';
 
 void main() {
   group('lightswitch', () {
