@@ -10,7 +10,7 @@ class _$ExecutionStep<T> extends ExecutionStep<T> {
   @override
   final ExecutionStep<T>? priorStep;
   @override
-  final State<T> root;
+  final RootState<T> root;
   @override
   final BuiltSet<State<T>> selections;
   @override
@@ -101,9 +101,9 @@ class ExecutionStepBuilder<T>
   set priorStep(ExecutionStepBuilder<T>? priorStep) =>
       _$this._priorStep = priorStep;
 
-  State<T>? _root;
-  State<T>? get root => _$this._root;
-  set root(State<T>? root) => _$this._root = root;
+  RootState<T>? _root;
+  RootState<T>? get root => _$this._root;
+  set root(RootState<T>? root) => _$this._root = root;
 
   SetBuilder<State<T>>? _selections;
   SetBuilder<State<T>> get selections =>

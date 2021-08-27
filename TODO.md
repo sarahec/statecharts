@@ -1,10 +1,7 @@
 # Punchlist
 
-- -Convert to monorepo- DONE
-
 ## Statecharts
 
-- Add documentation comments
 - Verify test coverge
 
 ## SCXML

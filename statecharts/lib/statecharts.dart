@@ -13,6 +13,61 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/// # Extensible statechart library.
+///
+/// This contains the tools to build an executable
+/// [statechart](https://statecharts.dev), essentially a state machine with
+/// nested substates and well-defined behaviors.
+///
+/// Each statechart is a tree with a [RootState] and one or more substates (
+/// [State]). Each [State] can contain [Transition] objects that are triggered
+/// by a message (event) or by a timer.
+///
+/// Each statechart may also have an associated data structure (`context`)
+/// that can be altered by the state machine.
+///
+/// Let's take a simple [lightswitch example](https://statecharts.dev/what-is-a-statechart.html).
+///
+/// ## The data model
+///
+/// ```
+/// class Lightbulb {
+///  bool isOn = false;
+/// }
+/// ```
+///
+/// ## The statechart
+///
+/// ```
+/// const turnOn = 'turnOn';
+/// const turnOff = 'turnOff';
+/// final res = StateResolver<Lightbulb>();
+///
+/// final countedLightswitch = RootState.newRoot<Lightbulb>('lightswitch2', [
+///  State<Lightbulb>('off',
+///      transitions: [
+///        res.transition(
+///            targets: ['on'],
+///            event: turnOn,
+///      ],
+///      onEntry: (b, _) => b!.isOn = false),
+///  State<Lightbulb>('on',
+///      transitions: [
+///        res.transition(targets: ['off'], event: turnOff),
+///      ],
+///      onEntry: (b, _) => b!.isOn = true),
+/// ]);
+/// ```
+///
+/// ## Execution
+///
+/// ```
+/// final engine = await Future.value(lightswitch)
+///            .then((ls) => Engine.initial<Lightbulb>(ls, bulb));
+/// // Execute an event
+/// await engine.execute(anEvent: 'turnOn');
+/// ```
+
 library statecharts;
 
 export 'src/engine/engine.dart';

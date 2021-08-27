@@ -5,11 +5,22 @@ import 'package:statecharts/statecharts.dart';
 
 part 'execution_step.g.dart';
 
+/// Contains the results of one execution step.
+///
+/// This uses [built_value](https://pub.dev/packages/built_value) to create
+/// an immutable object which, when asked to change a value, creates a
+/// modified copy. This makes debugging easier, including the ability to
+/// roll back the engine to a prior step by loading this object.
+///
 abstract class ExecutionStep<T>
     implements Built<ExecutionStep<T>, ExecutionStepBuilder<T>> {
   factory ExecutionStep([void Function(ExecutionStepBuilder<T>) updates]) =
       _$ExecutionStep<T>;
 
+  /// Generates the initial execution step using [RootState.initialTransition].
+  ///
+  /// If there's no initial transition, select the first substate under
+  /// the.
   static Future<ExecutionStep<T>> initial<T>(RootState<T> root) async {
     // Collect all the explicit initial states
     final initialStates = <State<T>>{};
@@ -26,6 +37,7 @@ abstract class ExecutionStep<T>
   // Required by built_value
   ExecutionStep._();
 
+  /// All active states.
   @memoized
   Set<State<T>> get activeStates {
     final _activeStates = <State<T>>{};
@@ -34,17 +46,21 @@ abstract class ExecutionStep<T>
     return UnmodifiableSetView(_activeStates);
   }
 
+  /// All states that need [State.onEntry] called, in order.
   @memoized
   Iterable<State<T>> get entryStates =>
       activeStates.difference(priorStep?.activeStates ?? {}).toList()
         ..sort((a, b) => a.order - b.order);
 
+  /// All states that need [State.onExit] called, in order.
   @memoized
   Iterable<State<T>> get exitStates => priorStep == null
       ? []
       : (priorStep!.activeStates.difference(activeStates).toList()
         ..sort((a, b) => a.order - b.order));
 
+  /// Updates the history map to include exit states that need to record
+  /// the prior active configuration (i.e. they contain a history state).
   @memoized
   BuiltMap<String, Iterable<State<T>>> get history {
     if (priorStep == null) {
@@ -57,19 +73,25 @@ abstract class ExecutionStep<T>
     return b.build();
   }
 
+  /// True if any values have changed in this step.
   @memoized
   bool get isChanged =>
       priorStep == null ||
       !SetEquality().equals(selections.asSet(), priorStep!.selections.asSet());
 
+  /// Link back to the previous step.
   ExecutionStep<T>? get priorStep;
 
-  State<T> get root;
+  /// The root of the tree
+  RootState<T> get root;
 
+  /// The set of active states.
   BuiltSet<State<T>> get selections;
 
+  /// The transitions taken.
   Iterable<Transition<T>>? get transitions;
 
+  /// Look up a history value by ID.
   Iterable<State<T>> historyValuesFor(State<T> s) {
     assert(s.containsHistoryState);
     assert(priorStep != null);

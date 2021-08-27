@@ -17,12 +17,21 @@ import 'dart:core';
 
 import 'package:collection/collection.dart';
 import 'package:logging/logging.dart';
+import 'package:meta/meta.dart';
 import 'package:quiver/core.dart';
 import 'package:statecharts/statecharts.dart';
 
 final _log = Logger('transition');
 
+/// A transition based on a named event such as `'turnOn'`.
+///
+/// It's easiest to create one of these using one of these using the [Transition]
+/// factory method.
+///
+/// Note that transitions, like states, are immutable once created.
+@immutable
 class EventTransition<T> extends Transition<T> {
+  /// The event name to match
   final String event;
 
   EventTransition(
@@ -44,6 +53,15 @@ class EventTransition<T> extends Transition<T> {
       IterableEquality().equals(targets, other.targets) &&
       type == other.type;
 
+  /// Tests whether this transition matches based on [event] and/or [condition],
+  /// ignoring [elapsedTime].
+  ///
+  /// [anEvent] The name of the event to match. If none is specified,
+  /// it could still match on [condition].
+  /// [elapsedTime] Ignored.
+  /// [context] The data tested by the condition and modified by [State.onEntry]
+  /// and [State.onExit].
+  /// [ignoreContext] If true, skip the [condition] check (forces it to be true).
   @override
   bool matches(
       {String? anEvent,
@@ -52,7 +70,6 @@ class EventTransition<T> extends Transition<T> {
       ignoreContext = false}) {
     // using compareTo instead of == as null safety appears to break == between
     // String? and String
-
     final found = anEvent != null &&
         event.compareTo(anEvent) == 0 &&
         (ignoreContext || meetsCondition(context));
@@ -61,7 +78,15 @@ class EventTransition<T> extends Transition<T> {
   }
 }
 
+/// A transition based on time or the [condition] field.
+///
+/// It's easiest to create one of these using one of these using the [Transition]
+/// factory method.
+///
+/// Note that transitions, like states, are immutable once created.
+
 class NonEventTransition<T> extends Transition<T> {
+  /// Time to trigger this. If null, this trabnsition triggers on its [condition]
   final Duration? after;
 
   NonEventTransition(
@@ -83,6 +108,14 @@ class NonEventTransition<T> extends Transition<T> {
       IterableEquality().equals(targets, other.targets) &&
       type == other.type;
 
+  /// Tests whether this transition matches based on [elapsedTime] and/or [condition],
+  /// ignoring [anEvent].
+  ///
+  /// [anEvent] Ignored.
+  /// [elapsedTime] The total time since the last event was triggered.
+  /// [context] The data tested by the condition and modified by [State.onEntry]
+  /// and [State.onExit].
+  /// [ignoreContext] If true, skip the [condition] check (forces it to be true).
   @override
   bool matches(
           {String? anEvent,
@@ -93,13 +126,24 @@ class NonEventTransition<T> extends Transition<T> {
       (elapsedTime != null && elapsedTime.compareTo(after!) >= 0);
 }
 
+/// Base class for all transitions.
 abstract class Transition<T> {
+  /// If true, this transition should be triggered.
   final Condition<T>? condition;
+
+  /// All of the target states to activate.
   final Iterable<State<T>> targets;
+
+  /// Is this triggered by internal or external events?
   final TransitionType type;
+
+  /// Reference back to the containing state.
   late final State<T>? source;
+
+  /// An action to take when the transition is triggered.
   final Action<T>? action;
 
+  /// Create the appropriate subclass based on the parameters.
   factory Transition(
           {Iterable<State<T>> targets = const [],
           String? event,
@@ -133,14 +177,18 @@ abstract class Transition<T> {
       IterableEquality().equals(targets, other.targets) &&
       type == other.type;
 
+  /// See subclasses
   bool matches(
       {String? anEvent,
       Duration? elapsedTime,
       T? context,
       ignoreContext = false});
 
+  /// Utility returns true if [context] is `null` or [condition] is not null
+  /// and returns `true`.
   bool meetsCondition(T? context) =>
       condition == null || (context != null && condition!(context));
 }
 
+/// Where  the transition should receive its events from.
 enum TransitionType { Internal, External }

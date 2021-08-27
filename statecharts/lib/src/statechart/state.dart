@@ -20,6 +20,39 @@ import 'package:meta/meta.dart';
 import 'package:quiver/core.dart';
 import 'package:statecharts/statecharts.dart';
 
+/// Defines the starting node for a statechart.
+///
+/// This node contains the entire statechart and defines the starting
+/// transition. Note the use of a [StateResolver] to create transitions
+/// from a state ID.
+///
+/// ```
+/// const turnOn = 'turnOn';
+/// const turnOff = 'turnOff';
+/// final res = StateResolver<Lightbulb>();
+/// final stateOff = State<Lightbulb>('off',
+///    transitions: [
+///     res.transition(targets: ['on'], event: turnOn)
+///   ],
+///   onEntry: (b, _) => b!.isOn = false);
+/// final stateOn = State<Lightbulb>('on',
+///    transitions: [
+///      res.transition(targets: ['off'], event: turnOff)
+///    ],
+///    onEntry: (b, _) => b!.isOn = true,
+///    onExit: (b, _) {
+///      b!.cycleCount += 1;
+///    });
+///
+/// final lightswitch = RootState.newRoot<Lightbulb>(
+///    'lightswitch',
+///    [
+///      stateOff,
+///      stateOn,
+///    ],
+///    resolver: res);
+/// ```
+///
 class RootState<T> extends State<T> {
   final StateResolver<T> resolver;
   var _stateMap;
@@ -38,6 +71,7 @@ class RootState<T> extends State<T> {
       isParallel == other.isParallel &&
       IterableEquality().equals(substates, other.substates);
 
+  /// Locate a state by ID. Returns null if not found.
   State<T>? find(String id) {
     _stateMap ??= {
       for (var s in toIterable.where((s1) => s1.id != null)) s.id!: s
@@ -45,6 +79,8 @@ class RootState<T> extends State<T> {
     return _stateMap[id];
   }
 
+  // Resolve the transition futures into transitions pointing to
+  // actual states.
   @visibleForTesting
   Future<RootState<T>> finishTree() async {
     var order = 1;
@@ -71,6 +107,7 @@ class RootState<T> extends State<T> {
   @override
   String toString() => "('$id', $substates)";
 
+  /// Create the root node. This
   static Future<RootState<T>> newRoot<T>(id, substates,
       {transitions = const [],
       onEntry,
@@ -89,9 +126,10 @@ class RootState<T> extends State<T> {
 }
 
 class State<T> {
+  /// Index into its parent's substates
   late final int order;
 
-  /// Unique identifier within its container
+  /// Unique identifier within its container (optional)
   final String? id;
 
   /// Declares this to be a final state
@@ -103,7 +141,7 @@ class State<T> {
   /// States contained within this one
   final Iterable<State<T>> substates;
 
-  /// Transitions from this state
+  /// All transitions from this state.
   final Iterable<Future<Transition<T>>> transitions;
 
   /// Action to be performed when this state or container is entered
@@ -112,10 +150,24 @@ class State<T> {
   /// Action to be performed when this state or container is exited
   final Action<T>? onExit;
 
+  /// The transition to run first.
+  ///
+  /// If null, the first substate is entered.
   final Future<Transition<T>>? initialTransition;
 
+  /// This node's parent (assigned late)
   late final State<T>? parent;
 
+  /// Creates a new [State]
+  ///
+  /// [transitions] If present, the available transitions out of this state.
+  /// [onEntry] Called when this state is entered.
+  /// [onExit] Called when this state is exited.
+  /// [isFinal] True if this a final state.
+  /// [isParallel] True if this is a parallel state.
+  /// [substates] The child states of this state, if any.
+  /// [initialTransition] A transition designating which substate shoud be
+  /// activated on entry.
   factory State(id,
       {Iterable<Future<Transition<T>>> transitions = const [],
       Action<T>? onEntry,
@@ -131,15 +183,19 @@ class State<T> {
   State._(this.id, this.transitions, this.onEntry, this.onExit, this.isFinal,
       this.isParallel, this.substates, this.initialTransition);
 
+  /// Are any of the immediate substates a history state?
   bool get containsHistoryState => substates.any((s) => s is HistoryState<T>);
 
   @override
   int get hashCode => hashObjects([id, isParallel, isFinal, substates]);
 
+  /// True if this has no substates (i.e. is a leaf node)
   bool get isAtomic => substates.isEmpty;
 
+  /// True if this has at least one substate.
   bool get isCompound => substates.isNotEmpty;
 
+  /// Walks this subtree in depth-first order.
   Iterable<State<T>> get toIterable sync* {
     Iterable<State<T>> _toIterable(State<T> node) sync* {
       yield node;
@@ -159,6 +215,14 @@ class State<T> {
       isParallel == other.isParallel &&
       IterableEquality().equals(substates, other.substates);
 
+  /// Determines all the active states in this subtree.
+  ///
+  /// This answers the question "given a set of active states, which other
+  /// descendants must also be active? It returns a complete set of active
+  /// states in this subtree, including the [selections] used to seed the
+  /// search.
+  ///
+  /// [selections] contains the prior known active states
   Iterable<State<T>> activeDescendents(Set<State<T>> selections) sync* {
     Iterable<State<T>> _active(State<T> node) sync* {
       yield node;
@@ -194,10 +258,12 @@ class State<T> {
     }
   }
 
+  /// Calls [onEntry]  with the given context (if they are both non-null).
   void enter(T? context, [EngineCallback? callback]) {
     if (onEntry != null && context != null) onEntry!(context, callback);
   }
 
+  /// Calls [onExit]  with the given context (if they are both non-null).
   void exit(T? context, [EngineCallback? callback]) {
     if (onExit != null && context != null) onExit!(context, callback);
   }
@@ -205,6 +271,13 @@ class State<T> {
   @override
   String toString() => "('$id', $substates)";
 
+  /// Finds the first transition matching all the criteria, or returns `null`.
+  ///
+  /// This passes the criteria to [Transition.matches].
+  /// [event] An event name such as `turnOn`.
+  /// [elapsedTime] A time value, as used in time-based transitions.
+  /// [context] Used to evaluate [Transition.condition] to see if it should match. (If the condition is non-null and [ignoreContext] is not `true`)
+  /// [ignoreContext] If `true`, skip the [Transition.condition] check.
   Future<Transition<T>?> transitionFor(
           {String? event,
           Duration? elapsedTime,

@@ -20,13 +20,52 @@ import 'package:statecharts/statecharts.dart';
 
 final _log = Logger('StateResolver');
 
+/// Used during construction to refer to a state by ID and resolve it to a
+/// concrete state later.
+///
+/// ```
+/// const turnOn = 'turnOn';
+/// const turnOff = 'turnOff';
+/// final res = StateResolver<Lightbulb>();
+/// final stateOff = State<Lightbulb>('off',
+///    transitions: [
+///     res.transition(targets: ['on'], event: turnOn)
+///   ],
+///   onEntry: (b, _) => b!.isOn = false);
+/// final stateOn = State<Lightbulb>('on',
+///    transitions: [
+///      res.transition(targets: ['off'], event: turnOff)
+///    ],
+///    onEntry: (b, _) => b!.isOn = true,
+///    onExit: (b, _) {
+///      b!.cycleCount += 1;
+///    });
+///
+/// final lightswitch = RootState.newRoot<Lightbulb>(
+///    'lightswitch',
+///    [
+///      stateOff,
+///      stateOn,
+///    ],
+///    resolver: res);
+/// ```
+///
+
 class StateResolver<T> {
   final _completer = Completer<RootState<T>>();
 
+  /// Get the root of the tree.
   Future<RootState<T>> get root async => _completer.future;
 
+  /// Resolves all of the state futures in the tree.
   void complete(RootState<T> root) => _completer.complete(root);
 
+  /// Creates a placeholder for the state with a given ID. Resolves after calling
+  /// [complete].
+  ///
+  /// This is used when creating a new statechart. A transition may refer
+  /// to a state that doesn't exist yet, so this creates a placeholder
+  /// for that state. This will be resolved once the whole tree is done.
   Future<State<T>?> state(String id) async =>
       root.then((r) => r.find(id)).then((result) {
         if (result == null) {
@@ -35,6 +74,19 @@ class StateResolver<T> {
         return result;
       });
 
+  /// Creates a transition placeholder referencing all its states by ID.
+  ///
+  /// Use this to create a new transition within a state that you're
+  /// defining. The [RootState] constructor will resolve these.
+  ///
+  /// ```
+  /// /// final stateOff = State<Lightbulb>('off',
+  ///    transitions: [
+  ///     res.transition(targets: ['on'], event: turnOn)
+  ///   ],
+  ///   onEntry: (b, _) => b!.isOn = false);
+  /// ```
+  ///
   Future<Transition<T>> transition(
       {targets = const <String>[],
       String? event,

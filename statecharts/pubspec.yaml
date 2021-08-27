@@ -15,7 +15,7 @@
 
 name: statecharts
 description: Statechart implementation consistent with Harel notation and the SCXML spec
-version: 1.0.1
+version: 1.0.1+1
 homepage: https://github.com/sarahec/statecharts
 
 environment:
