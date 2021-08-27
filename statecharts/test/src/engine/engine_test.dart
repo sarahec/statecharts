@@ -25,7 +25,7 @@ void main() {
     setUp(() async {
       bulb = Lightbulb();
       engine = await Future.value(lightswitch)
-          .then((ls) => Engine.initial<Lightbulb>(ls, bulb));
+          .then((ls) => Engine.initial<Lightbulb>(ls, context: bulb));
     });
 
     test('selects initial state', () {
