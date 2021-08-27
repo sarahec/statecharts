@@ -1,10 +1,6 @@
 # Punchlist
 
-## Statecharts
-
-- Verify test coverge
-
-## SCXML
+## SCXML (WIP, on `scxml` branch)
 
 - Backport state and transition classes
 - Generate parser for core states
