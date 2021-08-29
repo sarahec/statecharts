@@ -41,19 +41,18 @@
 /// ```
 /// const turnOn = 'turnOn';
 /// const turnOff = 'turnOff';
-/// final res = StateResolver<Lightbulb>();
 ///
 /// final countedLightswitch = RootState.newRoot<Lightbulb>('lightswitch2', [
 ///  State<Lightbulb>('off',
 ///      transitions: [
-///        res.transition(
+///        Transition(
 ///            targets: ['on'],
 ///            event: turnOn,
 ///      ],
 ///      onEntry: (b, _) => b!.isOn = false),
 ///  State<Lightbulb>('on',
 ///      transitions: [
-///        res.transition(targets: ['off'], event: turnOff),
+///        Transition(targets: ['off'], event: turnOff),
 ///      ],
 ///      onEntry: (b, _) => b!.isOn = true),
 /// ]);
@@ -62,10 +61,9 @@
 /// ## Execution
 ///
 /// ```
-/// final engine = await Future.value(lightswitch)
-///            .then((ls) => Engine.initial<Lightbulb>(ls, bulb));
+/// final engine = Engine<Lightbulb>(lightswitch, bulb);
 /// // Execute an event
-/// await engine.execute(anEvent: 'turnOn');
+/// engine.execute(anEvent: 'turnOn');
 /// ```
 
 library statecharts;
@@ -74,7 +72,6 @@ export 'src/engine/engine.dart';
 export 'src/engine/engine_callback.dart';
 export 'src/engine/execution_step.dart';
 export 'src/statechart/state.dart';
-export 'src/statechart/state_resolver.dart';
 export 'src/statechart/history_state.dart';
 export 'src/statechart/transition.dart';
 export 'src/statechart/typedefs.dart';

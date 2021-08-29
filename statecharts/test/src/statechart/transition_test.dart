@@ -18,10 +18,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('event transition', () {
-    final a = State<int>('a');
-    final b = State<int>('b');
-
-    final eventTransition = EventTransition<int>(targets: [a], event: 'onA');
+    final eventTransition = EventTransition<int>(targets: ['a'], event: 'onA');
 
     test('matches event',
         () => expect(eventTransition.matches(anEvent: 'onA'), isTrue));
@@ -37,18 +34,18 @@ void main() {
     test(
         '== matching transition',
         () => expect(eventTransition,
-            equals(EventTransition<int>(targets: [a], event: 'onA'))));
+            equals(EventTransition<int>(targets: ['a'], event: 'onA'))));
     test(
         '!= mismatched transition',
         () => expect(eventTransition,
-            isNot(equals(EventTransition<int>(targets: [b], event: 'onB')))));
+            isNot(equals(EventTransition<int>(targets: ['b'], event: 'onB')))));
   });
 
   group('event transition + condition', () {
     final cond = State<int>('cond');
 
     final conditionalTransition = EventTransition<int>(
-        targets: [cond], event: 'onA', condition: (int c) => c == 0);
+        targets: ['cond'], event: 'onA', condition: (int c) => c == 0);
 
     test(
         'matches event and condition',
@@ -69,18 +66,16 @@ void main() {
   });
 
   group('non-event transition', () {
-    final cond = State<int>('cond');
-
     test('matches on condition', () {
       final conditionalTransition = NonEventTransition<int>(
-          targets: [cond], condition: (int c) => c == 0);
+          targets: ['cond'], condition: (int c) => c == 0);
       expect(conditionalTransition.matches(context: 0), isTrue);
       expect(conditionalTransition.matches(context: 1), isFalse);
     });
 
     test('matches on delay', () {
-      final conditionalTransition =
-          NonEventTransition<int>(targets: [cond], after: Duration(minutes: 1));
+      final conditionalTransition = NonEventTransition<int>(
+          targets: ['cond'], after: Duration(minutes: 1));
       expect(conditionalTransition.matches(elapsedTime: Duration(minutes: 1)),
           isTrue);
       expect(
@@ -91,7 +86,7 @@ void main() {
 
     test('ignores event on match', () {
       final conditionalTransition = NonEventTransition<int>(
-          targets: [cond], condition: (int c) => c == 0);
+          targets: ['cond'], condition: (int c) => c == 0);
       expect(conditionalTransition.matches(anEvent: 'anything', context: 0),
           isTrue);
     });

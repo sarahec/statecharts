@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:async';
+
 import 'package:statecharts/statecharts.dart';
 
 enum HistoryDepth { SHALLOW, DEEP }
@@ -30,7 +32,7 @@ class HistoryState<T> implements State<T> {
   final HistoryDepth type;
 
   /// Specifies the default active states if none found in the history.
-  final Future<Transition<T>> transition;
+  final Transition<T> transition;
 
   /// Index into its parent's substates
   @override
@@ -64,7 +66,13 @@ class HistoryState<T> implements State<T> {
 
   /// All transitions from this state.
   @override
-  Iterable<Future<Transition<T>>> get transitions => [transition];
+  Iterable<Transition<T>> get transitions => [transition];
+
+  /// Populate [source] and [transition.targetStates]
+  @override
+  void resolveTransitions(Map<String, State<T>> stateMap) {
+    transition.resolveStates(this, stateMap);
+  }
 
   /// Report on unimplemented methods.
   ///

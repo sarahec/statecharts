@@ -21,13 +21,12 @@ abstract class ExecutionStep<T>
   ///
   /// If there's no initial transition, select the first substate under
   /// the.
-  static Future<ExecutionStep<T>> initial<T>(RootState<T> root) async {
+  static ExecutionStep<T> initial<T>(RootState<T> root) {
     // Collect all the explicit initial states
     final initialStates = <State<T>>{};
     for (var s in root.toIterable.where((probe) => probe.isCompound)) {
       if (s.initialTransition == null) continue;
-      await Future.value(s.initialTransition!)
-          .then((transition) => initialStates.addAll(transition.targets));
+      initialStates.addAll(s.initialTransition!.targetStates);
     }
     return ExecutionStep<T>((b) => b
       ..root = root
@@ -37,13 +36,31 @@ abstract class ExecutionStep<T>
   // Required by built_value
   ExecutionStep._();
 
-  /// All active states.
+  /// All active states, including resolved history states.
   @memoized
   Set<State<T>> get activeStates {
-    final _activeStates = <State<T>>{};
-    _activeStates.addAll(selections);
-    _activeStates.addAll(root.activeDescendents(selections.asSet()));
-    return UnmodifiableSetView(_activeStates);
+    final result = <State<T>>{};
+    if (selections.none((s) => s is HistoryState)) {
+      // No histories
+      result.addAll(selections);
+      result.addAll(root.activeDescendents(selections.asSet()));
+    } else {
+      final _history = priorHistory;
+      final _historyStates = selections.whereType<HistoryState<T>>();
+      final _newSelections =
+          Set.of(selections.whereNot((s) => s is HistoryState<T>));
+      for (var hs in _historyStates) {
+        final id = hs.parent!.id!;
+        if (_history.containsKey(id)) {
+          _newSelections.addAll(_history[id]!);
+        } else {
+          _newSelections.addAll(hs.transition.targetStates);
+        }
+      }
+      result.addAll(_newSelections);
+      result.addAll(root.activeDescendents(_newSelections));
+    }
+    return UnmodifiableSetView(result);
   }
 
   /// All states that need [State.onEntry] called, in order.
@@ -59,6 +76,11 @@ abstract class ExecutionStep<T>
       : (priorStep!.activeStates.difference(activeStates).toList()
         ..sort((a, b) => a.order - b.order));
 
+  /// History from the prior step, or an empty set if no prior step.
+  @memoized
+  BuiltMap<String, Iterable<State<T>>> get priorHistory =>
+      priorStep?.history ?? BuiltMap<String, Iterable<State<T>>>();
+
   /// Updates the history map to include exit states that need to record
   /// the prior active configuration (i.e. they contain a history state).
   @memoized
@@ -66,7 +88,7 @@ abstract class ExecutionStep<T>
     if (priorStep == null) {
       return BuiltMap<String, Iterable<State<T>>>();
     }
-    final b = priorStep!.history.toBuilder();
+    final b = priorHistory.toBuilder();
     for (var s in exitStates.where((s) => s.containsHistoryState)) {
       b[s.id!] = historyValuesFor(s);
     }
@@ -91,16 +113,14 @@ abstract class ExecutionStep<T>
   /// The transitions taken.
   Iterable<Transition<T>>? get transitions;
 
-  /// Look up a history value by ID.
+  /// Generates the history entry for a subtree.
   Iterable<State<T>> historyValuesFor(State<T> s) {
     assert(s.containsHistoryState);
-    assert(priorStep != null);
     // Since this is called for states that are exiting, we have to use the prior active states
-    final priorActive = priorStep!.activeStates;
+    final priorActive = priorStep?.activeStates ?? <State<T>>{};
     final activeChildren =
         s.substates.where((probe) => priorActive.contains(probe));
     final historyChildren = s.substates.whereType<HistoryState>();
-    late final deepChildren;
     // From the spec:
     // If the 'type' of a <history> element is "shallow", the SCXML processor
     // must record the immediately active children of its parent before taking
@@ -116,7 +136,7 @@ abstract class ExecutionStep<T>
       if (hs.type == HistoryDepth.SHALLOW) {
         result.addAll(activeChildren);
       } else {
-        deepChildren ??= [
+        final deepChildren = [
           for (var c in activeChildren) c.activeDescendents(priorActive).last
         ];
         result.addAll(deepChildren);
