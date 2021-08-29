@@ -35,7 +35,7 @@ class EventTransition<T> extends Transition<T> {
   final String event;
 
   EventTransition(
-      {Iterable<State<T>> targets = const [],
+      {Iterable<String> targets = const [],
       required this.event,
       Condition<T>? condition,
       type = TransitionType.External,
@@ -90,7 +90,7 @@ class NonEventTransition<T> extends Transition<T> {
   final Duration? after;
 
   NonEventTransition(
-      {Iterable<State<T>> targets = const [],
+      {Iterable<String> targets = const [],
       this.after,
       Condition<T>? condition,
       type = TransitionType.External,
@@ -131,8 +131,11 @@ abstract class Transition<T> {
   /// If true, this transition should be triggered.
   final Condition<T>? condition;
 
-  /// All of the target states to activate.
-  final Iterable<State<T>> targets;
+  /// The actual target states.
+  late final Iterable<State<T>> targetStates;
+
+  /// IDs of all of the target states to activate.
+  final Iterable<String> targets;
 
   /// Is this triggered by internal or external events?
   final TransitionType type;
@@ -145,7 +148,7 @@ abstract class Transition<T> {
 
   /// Create the appropriate subclass based on the parameters.
   factory Transition(
-          {Iterable<State<T>> targets = const [],
+          {Iterable<String> targets = const [],
           String? event,
           Condition<T>? condition,
           Duration? after,
@@ -184,8 +187,15 @@ abstract class Transition<T> {
       T? context,
       ignoreContext = false});
 
-  /// Utility returns true if [context] is `null` or [condition] is not null
-  /// and returns `true`.
+  /// Populates [targetStates] from [targets].
+  void resolveStates(State<T> parent, Map<String, State<T>> stateMap) {
+    source = parent;
+    targetStates = [for (var s in targets) stateMap[s]!];
+  }
+
+  /// Tests [condition]
+  ///
+  /// If there is no condition or context, returns `true` anyways.
   bool meetsCondition(T? context) =>
       condition == null || (context != null && condition!(context));
 }

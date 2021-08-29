@@ -20,30 +20,28 @@ import 'package:statecharts/statecharts.dart';
 final EXIT = 'exit';
 final RESTORE = 'restore';
 
-final res = StateResolver<void>();
-final history_statechart = RootState.newRoot<void>(
+final history_statechart = RootState<void>(
   'root',
-  resolver: res,
   substates: [
     State(
       'A',
       substates: [
         // remember the exit state of A. If it hasn't been exited yet, use C as the default.
-        HistoryState('A_AGAIN', transition: res.transition(targets: ['C'])),
+        HistoryState('A_AGAIN', transition: Transition(targets: ['C'])),
         State('B'),
         State('C'),
         State('D'),
       ],
-      initialTransition: res.transition(targets: ['B']),
+      initialTransition: Transition(targets: ['B']),
       transitions: [
-        res.transition(event: EXIT, targets: ['ALT']),
-        res.transition(event: RESTORE, targets: ['A_AGAIN']),
+        Transition(event: EXIT, targets: ['ALT']),
+        Transition(event: RESTORE, targets: ['A_AGAIN']),
       ],
     ),
     State(
       'ALT',
       transitions: [
-        res.transition(event: RESTORE, targets: ['A_AGAIN']),
+        Transition(event: RESTORE, targets: ['A_AGAIN']),
       ],
     ),
   ],

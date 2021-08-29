@@ -25,11 +25,10 @@ import 'package:statecharts/statecharts.dart';
 /// 2. Initialize the engine, then feed it events and timestamps.
 ///
 /// ```
-/// final lightswitch = RootState.newRoot<Lightbulb>(
-///    'lightswitch', [stateOff, stateOn], resolver: res);
+/// final lightswitch = RootState<Lightbulb>(
+///    'lightswitch', [stateOff, stateOn]);
 ///
-/// final engine = await Future.value(lightswitch)
-///                .then((ls) => Engine.initial<Lightbulb>(ls, bulb));
+/// final engine = Engine.initial<Lightbulb>(ls, bulb));
 /// // Execute an event
 /// await engine.execute(anEvent: 'turnOn');
 /// ```
@@ -43,7 +42,15 @@ class Engine<T> {
   /// Passed to [Transition.action], [State.onEntry], and [State.onExit].
   final EngineCallback? callback;
 
-  Engine(this.root, this._context, this._currentStep, [this.callback]);
+  /// Creates an engine.
+  ///
+  /// [root] The [RootState].
+  /// [context] The data object.
+  /// [step] The current step. If unspecified, creates a new, initial step.
+  /// [callback] Signaling mechanism back to the engine.
+  Engine(this.root, {T? context, ExecutionStep<T>? step, this.callback})
+      : _context = context,
+        _currentStep = ExecutionStep.initial<T>(root);
 
   /// The data this engine is managing.
   T? get context => _context;
@@ -66,9 +73,9 @@ class Engine<T> {
   ///
   /// [anEvent] The event name to match.
   /// [elapsedTime] The time to match.
-  Future<bool> execute({String? anEvent, Duration? elapsedTime}) async {
+  bool execute({String? anEvent, Duration? elapsedTime}) {
     final transitions =
-        await getTransitions(_currentStep, anEvent, elapsedTime, _context);
+        getTransitions(_currentStep, anEvent, elapsedTime, _context);
     final step_n = nextStep(_currentStep, transitions);
     if (step_n.isChanged) {
       _context = applyChanges(step_n, _context);
@@ -79,11 +86,11 @@ class Engine<T> {
 
   /// Locates the transactions used by [execute].
   @visibleForOverriding
-  Future<Iterable<Transition<T>>> getTransitions(ExecutionStep<T> step,
-          String? anEvent, Duration? elapsedTime, T? context) async =>
+  Iterable<Transition<T>> getTransitions(ExecutionStep<T> step, String? anEvent,
+          Duration? elapsedTime, T? context) =>
       [
         for (var s in step.activeStates)
-          await s.transitionFor(
+          s.transitionFor(
               event: anEvent, elapsedTime: elapsedTime, context: context)
       ].where((t) => t != null).cast<Transition<T>>();
 
@@ -95,7 +102,8 @@ class Engine<T> {
     b.priorStep = step.toBuilder();
     b.transitions = transitions;
     b.selections.removeAll(transitions.map((t) => t.source));
-    b.selections.addAll(transitions.map((t) => t.targets).expand((s) => s));
+    b.selections
+        .addAll(transitions.map((t) => t.targetStates).expand((s) => s));
     return b.build();
   }
 
@@ -124,12 +132,5 @@ class Engine<T> {
     for (var t in transitions) {
       if (t.action != null) t.action!(context, callback);
     }
-  }
-
-  /// Creates an engine with its first execution step.
-  static Future<Engine<T>> initial<T>(RootState<T> root,
-      {T? context, EngineCallback? callback}) async {
-    final step0 = await ExecutionStep.initial<T>(root);
-    return Engine(root, context, step0, callback);
   }
 }

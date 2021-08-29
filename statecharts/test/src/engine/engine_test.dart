@@ -22,34 +22,33 @@ void main() {
     Engine? engine;
     Lightbulb? bulb;
 
-    setUp(() async {
+    setUp(() {
       bulb = Lightbulb();
-      engine = await Future.value(lightswitch)
-          .then((ls) => Engine.initial<Lightbulb>(ls, context: bulb));
+      engine = Engine<Lightbulb>(lightswitch, context: bulb);
     });
 
     test('selects initial state', () {
       expect(engine!.currentStep.activeStates, containsAll([stateOff]));
     });
 
-    test("executes 'on' transition", () async {
-      await engine!.execute(anEvent: turnOn);
+    test("executes 'on' transition", () {
+      engine!.execute(anEvent: turnOn);
       expect(engine!.currentStep.activeStates, containsAll([stateOn]));
     });
 
-    test('calls onEntry', () async {
+    test('calls onEntry', () {
       expect(bulb?.isOn, isFalse);
-      await engine!.execute(anEvent: turnOn);
+      engine!.execute(anEvent: turnOn);
       expect(bulb?.isOn, isTrue);
-      await engine!.execute(anEvent: turnOff);
+      engine!.execute(anEvent: turnOff);
       expect(bulb?.isOn, isFalse);
     });
 
-    test('tests entry condition in transition', () async {
+    test('tests entry condition in transition', () {
       final limit = 10;
       for (var i = 0; i < limit; i++) {
-        await engine!.execute(anEvent: turnOn);
-        await engine!.execute(anEvent: turnOff);
+        engine!.execute(anEvent: turnOn);
+        engine!.execute(anEvent: turnOff);
       }
       expect(engine!.context?.cycleCount, equals(limit));
     });
