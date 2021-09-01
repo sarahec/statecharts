@@ -42,17 +42,6 @@ class EventTransition<T> extends Transition<T> {
       Action<T>? action})
       : super._(targets, condition, type, action);
 
-  @override
-  int get hashCode => hash4(event, targets, condition, type);
-
-  @override
-  bool operator ==(Object other) =>
-      other is EventTransition<T> &&
-      event == other.event &&
-      condition == other.condition &&
-      IterableEquality().equals(targets, other.targets) &&
-      type == other.type;
-
   /// Tests whether this transition matches based on [event] and/or [condition],
   /// ignoring [elapsedTime].
   ///
@@ -96,17 +85,6 @@ class NonEventTransition<T> extends Transition<T> {
       type = TransitionType.External,
       Action<T>? action})
       : super._(targets, condition, type, action);
-
-  @override
-  int get hashCode => hash4(targets, after, condition, type);
-
-  @override
-  bool operator ==(Object other) =>
-      other is NonEventTransition<T> &&
-      after == other.after &&
-      condition == other.condition &&
-      IterableEquality().equals(targets, other.targets) &&
-      type == other.type;
 
   /// Tests whether this transition matches based on [elapsedTime] and/or [condition],
   /// ignoring [anEvent].
@@ -169,16 +147,6 @@ abstract class Transition<T> {
               action: action);
 
   Transition._(this.targets, this.condition, this.type, this.action);
-
-  @override
-  int get hashCode => hash3(condition, targets, type);
-
-  @override
-  bool operator ==(Object other) =>
-      other is Transition<T> &&
-      condition == other.condition &&
-      IterableEquality().equals(targets, other.targets) &&
-      type == other.type;
 
   /// See subclasses
   bool matches(
