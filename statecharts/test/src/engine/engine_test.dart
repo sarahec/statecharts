@@ -15,6 +15,7 @@
 import 'package:statecharts/statecharts.dart';
 import 'package:test/test.dart';
 
+import '../examples/history.dart';
 import '../examples/lightswitch.dart';
 
 void main() {
@@ -54,35 +55,132 @@ void main() {
     });
   });
 
-  // group('basic statechart', () {
-  //   // First example from https://statecharts.github.io/what-is-a-statechart.html
+  group('history', () {
+    test('default states', () {
+      final engine = Engine<void>(history_statechart);
+      expect(engine.currentStep.activeStates.map((s) => s.id!),
+          containsAll(['root', 'A', 'B']));
+    });
 
-  //   final basic_composite = Statechart('D', [
-  //     State('E', isInitial: true, substates: [
-  //       State('G', transitions: [
-  //         EventTransition('G', event: 'flick'),
-  //         NonEventTransition('F', after: Duration(milliseconds: 500))
-  //       ])
-  //     ]),
-  //     State('F')
-  //   ]);
+    // Trigger the history state without exiting `A`. This should
+    // redirect to `C`.
+    test('default history transition', () {
+      final engine = Engine<void>(history_statechart);
+      expect(engine.currentStep.activeStates.map((s) => s.id!),
+          containsAll(['root', 'A', 'B']));
+      engine.execute(anEvent: RESTORE_A);
+      expect(engine.currentStep.activeStates.map((s) => s.id!),
+          containsAll(['root', 'A', 'C']));
+    });
 
-  //   Engine? engine;
+    test('exit parent', () {
+      final engine = Engine<void>(history_statechart);
+      expect(engine.currentStep.activeStates.map((s) => s.id!),
+          containsAll(['root', 'A', 'B']));
+      engine.execute(anEvent: EXIT);
+      expect(engine.currentStep.activeStates.map((s) => s.id!),
+          containsAll(['root', 'ALT']));
+    });
 
-  //   setUp(() {
-  //     engine = Engine(basic_composite);
-  //   });
+    group('restores', () {
+      test('leaf state', () {
+        final engine = Engine<void>(history_statechart);
+        expect(engine.currentStep.activeStates.map((s) => s.id!),
+            containsAll(['root', 'A', 'B']));
+        engine.execute(anEvent: EXIT);
+        engine.execute(anEvent: RESTORE_A);
+        expect(engine.currentStep.activeStates.map((s) => s.id!),
+            containsAll(['root', 'A', 'B']));
+      });
 
-  //   test('selects initial state', () {
-  //     expect(engine!.activeStates.first.id, equals('E'));
-  //   });
+      test('deep state', () {
+        final engine = Engine<void>(history_statechart);
+        engine.execute(anEvent: DEEP);
+        expect(engine.currentStep.activeStates.map((s) => s.id!),
+            containsAll(['root', 'A', 'D', 'D2']));
+        engine.execute(anEvent: EXIT);
+        // make sure the active states are correct
+        var stateIDs = engine.currentStep.activeStates.map((s) => s.id!);
+        expect(stateIDs, contains('ALT'));
+        expect(stateIDs, isNot(contains('A')), reason: 'in alt tree');
+        // now execute the history state
+        engine.execute(anEvent: RESTORE_A);
+        // Match deep history
+        expect(engine.currentStep.activeStates.map((s) => s.id!),
+            containsAll(['root', 'A', 'D', 'D2']));
+      }, skip: true);
 
-  //   // test('executes transitions', () {
-  //   //   expect(engine.currentState.id, equals('off'));
-  //   //   engine.execute(turnOn);
-  //   //   expect(engine.currentState.id, equals('on'));
-  //   //   engine.execute(turnOff);
-  //   //   expect(engine.currentState.id, equals('off'));
-  //   // });
-  // });
+      test('shallow state', () {
+        final engine = Engine<void>(history_statechart);
+        engine.execute(anEvent: EXIT);
+        engine.execute(anEvent: DEEP);
+        var stateIDs = engine.currentStep.activeStates.map((s) => s.id!);
+        expect(stateIDs, contains('ALT2b'));
+        expect(stateIDs, isNot(contains('A')), reason: 'in alt tree');
+        // engine.execute(anEvent: EXIT);
+        // engine.execute(anEvent: RESTORE_A);
+        // // Match deep history
+        // expect(engine.currentStep.activeStates.map((s) => s.id!),
+        //     containsAll(['root', 'A', 'D', 'D2']));
+      });
+    });
+  });
+
+  group('composite', () {
+    // First example from https://statecharts.github.io/what-is-a-statechart.html
+
+    final basic_composite = RootState<void>(
+      'D',
+      substates: [
+        State('E', substates: [
+          State('G', transitions: [
+            EventTransition(targets: ['G'], event: 'flick'),
+            NonEventTransition(
+                targets: ['F'], after: Duration(milliseconds: 500))
+          ])
+        ]),
+        State('F')
+      ],
+      initialTransition: Transition(targets: ['E']),
+    );
+
+    test('default initial state', () {
+      final engine = Engine<void>(basic_composite);
+      expect(engine.currentStep.activeStates.map((s) => s.id!),
+          containsAll(['D', 'E', 'G']));
+      expect(engine.currentStep.activeStates.first.id, equals('E'));
+    });
+
+    test('timed transition', () {
+      final engine = Engine<void>(basic_composite);
+      expect(engine.currentStep.activeStates.map((s) => s.id!),
+          containsAll(['D', 'E', 'G']),
+          reason: 'initial');
+      engine.execute(anEvent: 'flick');
+      expect(engine.currentStep.activeStates.map((s) => s.id!),
+          containsAll(['D', 'G']),
+          reason: 'in timed state');
+      engine.execute(elapsedTime: Duration(milliseconds: 250));
+      expect(engine.currentStep.activeStates.map((s) => s.id!),
+          containsAll(['D', 'G']),
+          reason: 'before time');
+      engine.execute(elapsedTime: Duration(milliseconds: 500));
+      expect(engine.currentStep.activeStates.map((s) => s.id!),
+          containsAll(['D', 'F']),
+          reason: 'after timed transition');
+    });
+
+    test('timed transition, late', () {
+      final engine = Engine<void>(basic_composite);
+      expect(engine.currentStep.activeStates.map((s) => s.id!),
+          containsAll(['D', 'E', 'G']),
+          reason: 'initial');
+      engine.execute(anEvent: 'flick');
+      // Should still trigger
+      engine.execute(elapsedTime: Duration(milliseconds: 750));
+      expect(engine.currentStep.activeStates.map((s) => s.id!),
+          containsAll(['D', 'F']),
+          reason: 'after timed transition');
+    });
+  });
 }
