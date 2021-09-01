@@ -67,25 +67,34 @@ void main() {
   });
   group('with history', () {
     ExecutionStep<void>? step0;
-    RootState<void>? root;
-    State<void>? stateA, stateB, stateC, stateD, altState, stateA_AGAIN;
+    State<void>? stateA,
+        stateB,
+        stateC,
+        stateD,
+        stateD1,
+        stateD2,
+        altState,
+        stateA_AGAIN;
 
     setUp(() async {
-      root = await history_statechart;
-      step0 = await ExecutionStep.initial<void>(root!);
-      stateA = root!.find('A');
-      stateA_AGAIN = root!.find('A_AGAIN');
-      stateB = root!.find('B')!;
-      stateC = root!.find('C')!;
-      stateD = root!.find('D')!;
-      altState = root!.find('ALT')!;
+      step0 = ExecutionStep.initial<void>(history_statechart);
+      stateA = history_statechart.find('A');
+      stateA_AGAIN = history_statechart.find('A_AGAIN');
+      stateB = history_statechart.find('B')!;
+      stateC = history_statechart.find('C')!;
+      stateD = history_statechart.find('D')!;
+      stateD1 = history_statechart.find('D1')!;
+      stateD2 = history_statechart.find('D2')!;
+      altState = history_statechart.find('ALT')!;
     });
 
     test('initialization', () {
-      expect(step0!.root, equals(root));
-      expect(step0!.activeStates, containsAll([root, stateA, stateB]),
+      expect(step0!.root, equals(history_statechart));
+      expect(step0!.activeStates,
+          containsAll([history_statechart, stateA, stateB]),
           reason: 'active states');
-      expect(step0!.entryStates, containsAll([root, stateA, stateB]),
+      expect(
+          step0!.entryStates, containsAll([history_statechart, stateA, stateB]),
           reason: 'entry states');
       expect(step0!.exitStates, isEmpty, reason: 'exit states');
       expect(step0!.historyValuesFor(stateA!), isEmpty);
@@ -96,9 +105,11 @@ void main() {
         ..priorStep = step0!.toBuilder()
         ..selections.remove(stateB)
         ..selections.add(stateD!));
-      expect(step1.activeStates, containsAll([root, stateA, stateD]),
+      expect(
+          step1.activeStates, containsAll([history_statechart, stateA, stateD]),
           reason: 'active states');
-      expect(step1.entryStates, equals([stateD]), reason: 'entry states');
+      expect(step1.entryStates, equals([stateD, stateD1]),
+          reason: 'entry states');
       expect(step1.exitStates, equals([stateB]), reason: 'exit states');
     });
 
@@ -108,35 +119,11 @@ void main() {
         ..selections.remove(stateB)
         ..selections.add(stateA_AGAIN!));
       // A_AGAIN has a default transition to C
-      expect(step1.activeStates, containsAll([root, stateA, stateC]),
+      expect(
+          step1.activeStates, containsAll([history_statechart, stateA, stateC]),
           reason: 'active states');
       expect(step1.entryStates, equals([stateC]), reason: 'entry states');
       expect(step1.exitStates, equals([stateB]), reason: 'exit states');
     });
-
-    /*
-    group('modification', () {
-      test('add leaf state', () {
-        final step1 = step0.rebuild((b) => b
-          ..selections.add(onState)
-          ..priorStep = step0.toBuilder());
-        expect(step1.activeStates, containsAll([rootState, onState]),
-            reason: 'active states');
-        expect(step1.entryStates, equals([onState]), reason: 'entry states');
-        expect(step1.exitStates, equals([offState]), reason: 'exit states');
-      });
-
-      test('replace child state', () {
-        final step1 = step0.rebuild((b) => b
-          ..priorStep = step0.toBuilder()
-          ..selections.remove(offState)
-          ..selections.add(onState));
-        expect(step1.activeStates, containsAll([rootState, onState]),
-            reason: 'active states');
-        expect(step1.entryStates, equals([onState]), reason: 'entry states');
-        expect(step1.exitStates, equals([offState]), reason: 'exit states');
-      });
-    });
-    */
   });
 }

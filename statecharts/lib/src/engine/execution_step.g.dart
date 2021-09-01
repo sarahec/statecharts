@@ -18,6 +18,7 @@ class _$ExecutionStep<T> extends ExecutionStep<T> {
   Set<State<T>>? __activeStates;
   Iterable<State<T>>? __entryStates;
   Iterable<State<T>>? __exitStates;
+  BuiltMap<String, Iterable<State<T>>>? __priorHistory;
   BuiltMap<String, Iterable<State<T>>>? __history;
   bool? __isChanged;
 
@@ -46,6 +47,10 @@ class _$ExecutionStep<T> extends ExecutionStep<T> {
 
   @override
   Iterable<State<T>> get exitStates => __exitStates ??= super.exitStates;
+
+  @override
+  BuiltMap<String, Iterable<State<T>>> get priorHistory =>
+      __priorHistory ??= super.priorHistory;
 
   @override
   BuiltMap<String, Iterable<State<T>>> get history =>
