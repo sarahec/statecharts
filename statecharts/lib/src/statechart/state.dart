@@ -41,13 +41,12 @@ import 'package:statecharts/statecharts.dart';
 ///      b!.cycleCount += 1;
 ///    });
 ///
-/// final lightswitch = RootState.newRoot<Lightbulb>(
+/// final lightswitch = RootState<Lightbulb>(
 ///    'lightswitch',
 ///    [
 ///      stateOff,
 ///      stateOn,
-///    ],
-///    resolver: res);
+///    ]);
 /// ```
 ///
 class RootState<T> extends State<T> {
@@ -74,16 +73,11 @@ class RootState<T> extends State<T> {
     stateMap = {
       for (var s in toIterable.where((s1) => s1.id != null)) s.id!: s
     };
+    order = 0;
+    parent = null;
+    resolveTransitions(stateMap);
     finishTree();
   }
-
-  @override
-  bool operator ==(Object other) =>
-      other is RootState<T> &&
-      id == other.id &&
-      isFinal == other.isFinal &&
-      isParallel == other.isParallel &&
-      IterableEquality().equals(substates, other.substates);
 
   // Resolve the transition futures into transitions pointing to
   // actual states.
@@ -92,20 +86,18 @@ class RootState<T> extends State<T> {
 
   @visibleForOverriding
   void finishTree() {
-    var order = 1;
+    var _order = 1;
 
-    void finishNode(State<T> node) {
+    void finishSubstates(State<T> node) {
       for (var s in node.substates) {
         s.parent = node;
-        s.order = order++;
+        s.order = _order++;
         s.resolveTransitions(stateMap);
-        finishNode(s);
+        finishSubstates(s);
       }
     }
 
-    parent = null;
-    this.order = 0;
-    finishNode(this);
+    finishSubstates(this);
   }
 
   @override
@@ -167,9 +159,6 @@ class State<T> {
   /// Are any of the immediate substates a history state?
   bool get containsHistoryState => substates.any((s) => s is HistoryState<T>);
 
-  @override
-  int get hashCode => hashObjects([id, isParallel, isFinal, substates]);
-
   /// True if this has no substates (i.e. is a leaf node)
   bool get isAtomic => substates.isEmpty;
 
@@ -187,14 +176,6 @@ class State<T> {
 
     yield* _toIterable(this);
   }
-
-  @override
-  bool operator ==(Object other) =>
-      other is State<T> &&
-      id == other.id &&
-      isFinal == other.isFinal &&
-      isParallel == other.isParallel &&
-      IterableEquality().equals(substates, other.substates);
 
   /// Determines all the active states in this subtree.
   ///
