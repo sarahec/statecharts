@@ -28,7 +28,6 @@ dependencies:
   logging: ^1.0.0
   meta: ^1.7.0
   ordered_set: ^3.0.0
-  quiver: ^3.0.0
 
 dev_dependencies:
   build_runner: ^2.0.6
