@@ -17,8 +17,10 @@ import 'package:statecharts/statecharts.dart';
 
 // Using the example from https://statecharts.dev/glossary/history-state.html
 
+final DEEP = 'deep';
 final EXIT = 'exit';
-final RESTORE = 'restore';
+final RESTORE_A = 'restore';
+final RESTORE_ALT = 'restore_alt';
 
 final history_statechart = RootState<void>(
   'root',
@@ -27,21 +29,35 @@ final history_statechart = RootState<void>(
       'A',
       substates: [
         // remember the exit state of A. If it hasn't been exited yet, use C as the default.
-        HistoryState('A_AGAIN', transition: Transition(targets: ['C'])),
+        HistoryState('A_AGAIN',
+            transition: Transition(targets: ['C']), type: HistoryDepth.DEEP),
         State('B'),
         State('C'),
-        State('D'),
+        State('D', substates: [State('D1'), State('D2')]),
       ],
       initialTransition: Transition(targets: ['B']),
       transitions: [
         Transition(event: EXIT, targets: ['ALT']),
-        Transition(event: RESTORE, targets: ['A_AGAIN']),
+        Transition(event: RESTORE_A, targets: ['A_AGAIN']),
+        Transition(event: RESTORE_ALT, targets: ['ALT_AGAIN']),
+        Transition(event: DEEP, targets: ['D2']),
       ],
     ),
     State(
       'ALT',
+      substates: [
+        State('ALT1'),
+        State(
+          'ALT2',
+          substates: [State('ALT2a'), State('ALT2b')],
+        ),
+        HistoryState('ALT_AGAIN',
+            transition: Transition(targets: ['C']), type: HistoryDepth.SHALLOW),
+      ],
       transitions: [
-        Transition(event: RESTORE, targets: ['A_AGAIN']),
+        Transition(event: RESTORE_A, targets: ['A_AGAIN']),
+        Transition(event: RESTORE_ALT, targets: ['ALT_AGAIN']),
+        Transition(event: DEEP, targets: ['ALT2b']),
       ],
     ),
   ],
