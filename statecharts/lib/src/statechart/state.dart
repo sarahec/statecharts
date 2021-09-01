@@ -15,7 +15,6 @@
 
 import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
-import 'package:quiver/core.dart';
 import 'package:statecharts/statecharts.dart';
 
 /// Defines the starting node for a statechart.
