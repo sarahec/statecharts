@@ -1,6 +1,10 @@
+import 'dart:collection';
+
 import 'package:built_collection/built_collection.dart';
 import 'package:built_value/built_value.dart';
 import 'package:collection/collection.dart';
+import 'package:meta/meta.dart';
+import 'package:ordered_set/ordered_set.dart';
 import 'package:statecharts/statecharts.dart';
 
 part 'execution_step.g.dart';
@@ -37,31 +41,11 @@ abstract class ExecutionStep<T>
   ExecutionStep._();
 
   /// All active states, including resolved history states.
+  ///
+  /// This rebuilds the entire tree from scratch (for now)
   @memoized
-  Set<State<T>> get activeStates {
-    final result = <State<T>>{};
-    if (selections.none((s) => s is HistoryState)) {
-      // No histories
-      result.addAll(selections);
-      result.addAll(root.activeDescendents(selections.asSet()));
-    } else {
-      final _history = priorHistory;
-      final _historyStates = selections.whereType<HistoryState<T>>();
-      final _newSelections =
-          Set.of(selections.whereNot((s) => s is HistoryState<T>));
-      for (var hs in _historyStates) {
-        final id = hs.parent!.id!;
-        if (_history.containsKey(id)) {
-          _newSelections.addAll(_history[id]!);
-        } else {
-          _newSelections.addAll(hs.transition.targetStates);
-        }
-      }
-      result.addAll(_newSelections);
-      result.addAll(root.activeDescendents(_newSelections));
-    }
-    return UnmodifiableSetView(result);
-  }
+  Set<State<T>> get activeStates =>
+      UnmodifiableSetView<State<T>>(buildTree(selections));
 
   /// All states that need [State.onEntry] called, in order.
   @memoized
@@ -107,13 +91,14 @@ abstract class ExecutionStep<T>
   /// The root of the tree
   RootState<T> get root;
 
-  /// The set of active states.
+  /// Explicitly selected states (from transitions)
   BuiltSet<State<T>> get selections;
 
   /// The transitions taken.
   Iterable<Transition<T>>? get transitions;
 
   /// Generates the history entry for a subtree.
+  @visibleForOverriding
   Iterable<State<T>> historyValuesFor(State<T> s) {
     assert(s.containsHistoryState);
     // Since this is called for states that are exiting, we have to use the prior active states
@@ -143,5 +128,65 @@ abstract class ExecutionStep<T>
       }
     }
     return result;
+  }
+
+  @visibleForOverriding
+  Iterable<State<T>> replaceHistoryStates(Iterable<State<T>> selections) {
+    final _historyStates = selections.whereType<HistoryState<T>>();
+    if (_historyStates.isEmpty) return selections;
+    final concreteStates = selections.toSet();
+    concreteStates.removeAll(_historyStates);
+    for (var h in _historyStates) {
+      concreteStates.addAll(priorHistory[h] ?? h.transition.targetStates);
+    }
+    return concreteStates;
+  }
+
+  @visibleForOverriding
+  Set<State<T>> buildTree(Iterable<State<T>> selections,
+      {State<T>? startNode}) {
+    final tree = <State<T>>{};
+    final baseNode = startNode ?? root;
+
+    // Build links back to the starting node from known states
+    void _expandSelected(_selections, State<T> top) {
+      tree.addAll(_selections);
+      for (var s in _selections) {
+        tree.addAll(s.ancestors(upTo: top));
+      }
+    }
+
+    void _addSubtree(State<T> state) {
+      var probe = state;
+
+      while (true) {
+        tree.add(probe);
+        if (probe.isAtomic) return;
+
+        // Move to the substate(s)
+        if (probe.isParallel) {
+          for (var s in probe.substates.where((s) => !tree.contains(s))) {
+            _addSubtree(s);
+          }
+        } else {
+          // Find the active substate(s)
+          final _selections = state.initialTransition?.targetStates;
+          if (_selections == null) {
+            probe = state.substates.first;
+          } else {
+            tree.addAll(buildTree(_selections, startNode: state));
+            return;
+          }
+        }
+      }
+    }
+
+    final concreteSelections = replaceHistoryStates(selections);
+    _expandSelected(concreteSelections, baseNode);
+    for (var s in concreteSelections.where((s) => s.isCompound)) {
+      _addSubtree(s);
+    }
+    tree.add(baseNode);
+    return tree;
   }
 }
