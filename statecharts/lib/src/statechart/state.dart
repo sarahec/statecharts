@@ -98,9 +98,6 @@ class RootState<T> extends State<T> {
 
     finishSubstates(this);
   }
-
-  @override
-  String toString() => "('$id', $substates)";
 }
 
 class State<T> {
@@ -237,15 +234,19 @@ class State<T> {
     }
   }
 
+  /// Used by [toString] to show IDs of substates, not the substates themselves.
+  Iterable<String> get substateIDs => substates.map((s) => s.id ?? '_');
+
   @override
-  String toString() => "('$id', $substates)";
+  String toString() => "(${id ?? '_'}, substates:$substateIDs)";
 
   /// Finds the first transition matching all the criteria, or returns `null`.
   ///
   /// This passes the criteria to [Transition.matches].
   /// [event] An event name such as `turnOn`.
   /// [elapsedTime] A time value, as used in time-based transitions.
-  /// [context] Used to evaluate [Transition.condition] to see if it should match. (If the condition is non-null and [ignoreContext] is not `true`)
+  /// [context] Used to evaluate [Transition.condition] to see if it should
+  /// match. (If the condition is non-null and [ignoreContext] is not `true`)
   /// [ignoreContext] If `true`, skip the [Transition.condition] check.
   Transition<T>? transitionFor(
           {String? event,
