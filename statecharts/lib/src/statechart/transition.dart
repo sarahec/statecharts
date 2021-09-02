@@ -15,10 +15,8 @@
 
 import 'dart:core';
 
-import 'package:collection/collection.dart';
 import 'package:logging/logging.dart';
 import 'package:meta/meta.dart';
-import 'package:quiver/core.dart';
 import 'package:statecharts/statecharts.dart';
 
 final _log = Logger('transition');
@@ -155,17 +153,20 @@ abstract class Transition<T> {
       T? context,
       ignoreContext = false});
 
+  /// Tests [condition]
+  ///
+  /// If there is no condition or context, returns `true` anyways.
+  bool meetsCondition(T? context) =>
+      condition == null || (context != null && condition!(context));
+
   /// Populates [targetStates] from [targets].
   void resolveStates(State<T> parent, Map<String, State<T>> stateMap) {
     source = parent;
     targetStates = [for (var s in targets) stateMap[s]!];
   }
 
-  /// Tests [condition]
-  ///
-  /// If there is no condition or context, returns `true` anyways.
-  bool meetsCondition(T? context) =>
-      condition == null || (context != null && condition!(context));
+  @override
+  String toString() => '(targets: $targets)';
 }
 
 /// Where  the transition should receive its events from.

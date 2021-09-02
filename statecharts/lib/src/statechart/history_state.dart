@@ -86,4 +86,7 @@ class HistoryState<T> implements State<T> {
   void resolveTransitions(Map<String, State<T>> stateMap) {
     transition.resolveStates(this, stateMap);
   }
+
+  @override
+  String toString() => '($id, $transition, $type)';
 }
