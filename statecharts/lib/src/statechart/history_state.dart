@@ -45,13 +45,9 @@ class HistoryState<T> implements State<T> {
   HistoryState(this.id,
       {required this.transition, this.type = HistoryDepth.DEEP});
 
-  /// No-op in a history state.
+  /// Not applicable
   @override
-  void enter(T? context, [EngineCallback? callback]) {}
-
-  /// No-op in a history state.
-  @override
-  void exit(T? context, [EngineCallback? callback]) {}
+  Transition<T>? get initialTransition => null;
 
   @override
   bool get isAtomic => true;
@@ -68,11 +64,13 @@ class HistoryState<T> implements State<T> {
   @override
   Iterable<Transition<T>> get transitions => [transition];
 
-  /// Populate [source] and [transition.targetStates]
+  /// No-op in a history state.
   @override
-  void resolveTransitions(Map<String, State<T>> stateMap) {
-    transition.resolveStates(this, stateMap);
-  }
+  void enter(T? context, [EngineCallback? callback]) {}
+
+  /// No-op in a history state.
+  @override
+  void exit(T? context, [EngineCallback? callback]) {}
 
   /// Report on unimplemented methods.
   ///
@@ -82,4 +80,10 @@ class HistoryState<T> implements State<T> {
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError(
       'Not implemented in History pseudo-state: ${invocation.memberName}');
+
+  /// Populate [source] and [transition.targetStates]
+  @override
+  void resolveTransitions(Map<String, State<T>> stateMap) {
+    transition.resolveStates(this, stateMap);
+  }
 }
