@@ -29,12 +29,14 @@ void main() {
     });
 
     test('selects initial state', () {
-      expect(engine!.currentStep.activeStates, containsAll([stateOff]));
+      expect(engine!.currentStep.activeStates.sorted,
+          equals([lightswitch, stateOff]));
     });
 
     test("executes 'on' transition", () {
       engine!.execute(anEvent: turnOn);
-      expect(engine!.currentStep.activeStates, containsAll([stateOn]));
+      expect(engine!.currentStep.activeStates.sorted,
+          equals([lightswitch, stateOn]));
     });
 
     test('calls onEntry', () {
@@ -58,55 +60,46 @@ void main() {
   group('history', () {
     test('default states', () {
       final engine = Engine<void>(history_statechart);
-      expect(engine.currentStep.activeStates.map((s) => s.id!),
-          containsAll(['root', 'A', 'B']));
+      expect(engine.currentStep.activeStates.ids, equals(['root', 'A', 'B']));
     });
 
     // Trigger the history state without exiting `A`. This should
     // redirect to `C`.
     test('default history transition', () {
-      final engine = Engine<void>(history_statechart);
-      expect(engine.currentStep.activeStates.map((s) => s.id!),
-          containsAll(['root', 'A', 'B']));
+      final engine = Engine<void>(history_statechart); // [root, A, B]
       engine.execute(anEvent: RESTORE_A);
-      expect(engine.currentStep.activeStates.map((s) => s.id!),
-          containsAll(['root', 'A', 'C']));
+      expect(engine.currentStep.activeStates.ids, equals(['root', 'A', 'C']));
     });
 
     test('exit parent', () {
-      final engine = Engine<void>(history_statechart);
-      expect(engine.currentStep.activeStates.map((s) => s.id!),
-          containsAll(['root', 'A', 'B']));
+      final engine = Engine<void>(history_statechart); // [root, A, B]
       engine.execute(anEvent: EXIT);
-      expect(engine.currentStep.activeStates.map((s) => s.id!),
-          containsAll(['root', 'ALT']));
+      expect(engine.currentStep.activeStates.ids,
+          containsAllInOrder(['root', 'ALT']));
     });
 
     group('restores', () {
       test('leaf state', () {
-        final engine = Engine<void>(history_statechart);
-        expect(engine.currentStep.activeStates.map((s) => s.id!),
-            containsAll(['root', 'A', 'B']));
-        engine.execute(anEvent: EXIT);
-        engine.execute(anEvent: RESTORE_A);
-        expect(engine.currentStep.activeStates.map((s) => s.id!),
-            containsAll(['root', 'A', 'B']));
+        final engine = Engine<void>(history_statechart); // [root, A, B]
+        engine.execute(anEvent: EXIT); // [root, ALT, ALT1]
+        engine.execute(anEvent: RESTORE_A); // should remove ALT, add B
+        expect(engine.currentStep.activeStates.ids, equals(['root', 'A', 'B']));
       });
 
       test('deep state', () {
         final engine = Engine<void>(history_statechart);
         engine.execute(anEvent: DEEP);
-        expect(engine.currentStep.activeStates.map((s) => s.id!),
+        expect(engine.currentStep.activeStates.ids,
             containsAll(['root', 'A', 'D', 'D2']));
         engine.execute(anEvent: EXIT);
         // make sure the active states are correct
-        var stateIDs = engine.currentStep.activeStates.map((s) => s.id!);
+        var stateIDs = engine.currentStep.activeStates.ids;
         expect(stateIDs, contains('ALT'));
         expect(stateIDs, isNot(contains('A')), reason: 'in alt tree');
         // now execute the history state
         engine.execute(anEvent: RESTORE_A);
         // Match deep history
-        expect(engine.currentStep.activeStates.map((s) => s.id!),
+        expect(engine.currentStep.activeStates.ids,
             containsAll(['root', 'A', 'D', 'D2']));
       }, skip: true);
 
@@ -114,13 +107,13 @@ void main() {
         final engine = Engine<void>(history_statechart);
         engine.execute(anEvent: EXIT);
         engine.execute(anEvent: DEEP);
-        var stateIDs = engine.currentStep.activeStates.map((s) => s.id!);
+        var stateIDs = engine.currentStep.activeStates.ids;
         expect(stateIDs, contains('ALT2b'));
         expect(stateIDs, isNot(contains('A')), reason: 'in alt tree');
         // engine.execute(anEvent: EXIT);
         // engine.execute(anEvent: RESTORE_A);
         // // Match deep history
-        // expect(engine.currentStep.activeStates.map((s) => s.id!),
+        // expect(engine.currentStep.activeStates.ids,
         //     containsAll(['root', 'A', 'D', 'D2']));
       });
     });
@@ -146,41 +139,37 @@ void main() {
 
     test('default initial state', () {
       final engine = Engine<void>(basic_composite);
-      expect(engine.currentStep.activeStates.map((s) => s.id!),
-          containsAll(['D', 'E', 'G']));
+      expect(engine.currentStep.activeStates.ids, containsAll(['D', 'E', 'G']));
       expect(engine.currentStep.activeStates.first.id, equals('E'));
     });
 
     test('timed transition', () {
       final engine = Engine<void>(basic_composite);
-      expect(engine.currentStep.activeStates.map((s) => s.id!),
-          containsAll(['D', 'E', 'G']),
-          reason: 'initial');
-      engine.execute(anEvent: 'flick');
-      expect(engine.currentStep.activeStates.map((s) => s.id!),
-          containsAll(['D', 'G']),
-          reason: 'in timed state');
+      engine.execute(anEvent: 'flick'); // self transition
+      expect(engine.currentStep.activeStates.ids, equals(['D', 'E', 'G']));
       engine.execute(elapsedTime: Duration(milliseconds: 250));
-      expect(engine.currentStep.activeStates.map((s) => s.id!),
-          containsAll(['D', 'G']),
+      expect(engine.currentStep.activeStates.ids, equals(['D', 'E', 'G']),
           reason: 'before time');
       engine.execute(elapsedTime: Duration(milliseconds: 500));
-      expect(engine.currentStep.activeStates.map((s) => s.id!),
-          containsAll(['D', 'F']),
+      expect(engine.currentStep.activeStates.ids, equals(['D', 'F']),
           reason: 'after timed transition');
     });
 
     test('timed transition, late', () {
       final engine = Engine<void>(basic_composite);
-      expect(engine.currentStep.activeStates.map((s) => s.id!),
-          containsAll(['D', 'E', 'G']),
-          reason: 'initial');
-      engine.execute(anEvent: 'flick');
       // Should still trigger
       engine.execute(elapsedTime: Duration(milliseconds: 750));
-      expect(engine.currentStep.activeStates.map((s) => s.id!),
-          containsAll(['D', 'F']),
+      expect(engine.currentStep.activeStates.ids, containsAll(['D', 'F']),
           reason: 'after timed transition');
     });
   });
+}
+
+/// Testing utility
+extension IDs<T> on Iterable<State<T>> {
+  /// The [id] values of all states sorted by [order]
+  Iterable<String> get ids => [for (var s in sorted) s.id ?? '_'];
+
+  Iterable<State<T>> get sorted =>
+      (toList()..sort((a, b) => a.order.compareTo(b.order)));
 }

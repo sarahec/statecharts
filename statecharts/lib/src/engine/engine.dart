@@ -50,7 +50,7 @@ class Engine<T> {
   /// [callback] Signaling mechanism back to the engine.
   Engine(this.root, {T? context, ExecutionStep<T>? step, this.callback})
       : _context = context,
-        _currentStep = ExecutionStep.initial<T>(root);
+        _currentStep = ExecutionStepBase.initial<T>(root);
 
   /// The data this engine is managing.
   T? get context => _context;
@@ -97,15 +97,8 @@ class Engine<T> {
   /// Calculates the next step from the previous step and identified transitions.
   @visibleForOverriding
   ExecutionStep<T> nextStep(
-      ExecutionStep<T> step, Iterable<Transition<T>> transitions) {
-    final b = step.toBuilder();
-    b.priorStep = step.toBuilder();
-    b.transitions = transitions;
-    b.selections.removeAll(transitions.map((t) => t.source));
-    b.selections
-        .addAll(transitions.map((t) => t.targetStates).expand((s) => s));
-    return b.build();
-  }
+          ExecutionStep<T> step, Iterable<Transition<T>> transitions) =>
+      step.applyTransitions(transitions);
 
   /// Calls [State.onEntry] on the step's entry states.
   @visibleForOverriding

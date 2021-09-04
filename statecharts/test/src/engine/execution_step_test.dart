@@ -23,14 +23,15 @@ void main() {
   group('with lightswitch', () {
     var step0;
     var root;
-    var rootState, onState, offState;
+    RootState<Lightbulb>? rootState;
+    State<Lightbulb>? onState, offState;
 
     setUp(() async {
-      root = await lightswitch;
-      step0 = await ExecutionStep.initial<Lightbulb>(root);
-      rootState = await root.find('lightswitch');
-      onState = await root.find('on');
-      offState = await root.find('off');
+      root = lightswitch;
+      step0 = ExecutionStepBase.initial<Lightbulb>(root);
+      rootState = root.find('lightswitch');
+      onState = root.find('on');
+      offState = root.find('off');
     });
 
     test('initialization', () {
@@ -44,20 +45,19 @@ void main() {
 
     group('modification', () {
       test('add leaf state', () {
-        final step1 = step0.rebuild((b) => b
-          ..selections.add(onState)
-          ..priorStep = step0.toBuilder());
+        final step1 = step0.applyChanges(add: [onState!]);
         expect(step1.activeStates, containsAll([rootState, onState]),
             reason: 'active states');
+        expect(step1.activeStates, containsAll([rootState, onState]),
+            reason: 'active states');
+        expect(step1.activeStates, isNot(contains(offState)),
+            reason: 'explicit selection replaces default');
         expect(step1.entryStates, equals([onState]), reason: 'entry states');
         expect(step1.exitStates, equals([offState]), reason: 'exit states');
       });
 
       test('replace child state', () {
-        final step1 = step0.rebuild((b) => b
-          ..priorStep = step0.toBuilder()
-          ..selections.remove(offState)
-          ..selections.add(onState));
+        final step1 = step0.applyChanges(remove: [offState!], add: [onState!]);
         expect(step1.activeStates, containsAll([rootState, onState]),
             reason: 'active states');
         expect(step1.entryStates, equals([onState]), reason: 'entry states');
@@ -66,7 +66,7 @@ void main() {
     });
   });
   group('with history', () {
-    ExecutionStep<void>? step0;
+    ExecutionStepBase<void>? step0;
     State<void>? stateA,
         stateB,
         stateC,
@@ -77,7 +77,7 @@ void main() {
         stateA_AGAIN;
 
     setUp(() async {
-      step0 = ExecutionStep.initial<void>(history_statechart);
+      step0 = ExecutionStepBase.initial<void>(history_statechart);
       stateA = history_statechart.find('A');
       stateA_AGAIN = history_statechart.find('A_AGAIN');
       stateB = history_statechart.find('B')!;
@@ -101,10 +101,7 @@ void main() {
     });
 
     test('replace child state', () {
-      final step1 = step0!.rebuild((b) => b
-        ..priorStep = step0!.toBuilder()
-        ..selections.remove(stateB)
-        ..selections.add(stateD!));
+      final step1 = step0!.applyChanges(remove: [stateB!], add: [stateD!]);
       expect(
           step1.activeStates, containsAll([history_statechart, stateA, stateD]),
           reason: 'active states');
@@ -114,10 +111,8 @@ void main() {
     });
 
     test('trigger history replacement (default)', () {
-      final step1 = step0!.rebuild((b) => b
-        ..priorStep = step0!.toBuilder()
-        ..selections.remove(stateB)
-        ..selections.add(stateA_AGAIN!));
+      final step1 =
+          step0!.applyChanges(remove: [stateB!], add: [stateA_AGAIN!]);
       // A_AGAIN has a default transition to C
       expect(
           step1.activeStates, containsAll([history_statechart, stateA, stateC]),
