@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'package:collection/collection.dart';
 import 'package:statecharts/statecharts.dart';
 
 class MutableStateTree<T> implements StateTree<T> {
@@ -20,6 +21,14 @@ class MutableStateTree<T> implements StateTree<T> {
   final RootState<T> root;
   final int _length;
   final List<Iterable<State<T>>?> _substates;
+  final _entryStates = <State<T>>[];
+  final _exitStates = <State<T>>[];
+
+  @override
+  Iterable<State<T>> get entryStates => UnmodifiableListView(_entryStates);
+
+  @override
+  Iterable<State<T>> get exitStates => UnmodifiableListView(_exitStates);
 
   factory MutableStateTree(RootState<T> root) {
     final length = root.toIterable.length;
@@ -92,7 +101,6 @@ class MutableStateTree<T> implements StateTree<T> {
 
   void removeSubtree(State<T> node) => removeAll(subtreeOf(node));
 
-  @override
   Iterable<State<T>> subtreeOf(State<T> node) sync* {
     var probe = node;
     yield probe;
