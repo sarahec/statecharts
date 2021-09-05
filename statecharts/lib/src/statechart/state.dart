@@ -161,6 +161,9 @@ class State<T> {
   /// True if this has at least one substate.
   bool get isCompound => substates.isNotEmpty;
 
+  /// Used by [toString] to show IDs of substates, not the substates themselves.
+  Iterable<String> get substateIDs => substates.map((s) => s.id ?? '_');
+
   /// Walks this subtree in depth-first order.
   Iterable<State<T>> get toIterable sync* {
     Iterable<State<T>> _toIterable(State<T> node) sync* {
@@ -216,6 +219,9 @@ class State<T> {
     }
   }
 
+  /// Whether this state descends from another.
+  bool descendsFrom(State<T> other) => other.ancestors().contains(this);
+
   /// Calls [onEntry]  with the given context (if they are both non-null).
   void enter(T? context, [EngineCallback? callback]) {
     if (onEntry != null && context != null) onEntry!(context, callback);
@@ -233,9 +239,6 @@ class State<T> {
       t.resolveStates(this, stateMap);
     }
   }
-
-  /// Used by [toString] to show IDs of substates, not the substates themselves.
-  Iterable<String> get substateIDs => substates.map((s) => s.id ?? '_');
 
   @override
   String toString() => "(${id ?? '_'}, substates:$substateIDs)";
@@ -258,4 +261,10 @@ class State<T> {
           elapsedTime: elapsedTime,
           context: context,
           ignoreContext: ignoreContext));
+
+  /// The lowest node in the tree that encompasses all nodes.
+  static State<T> commonSubtree<T>(Iterable<State<T>> nodes) => (nodes
+      .map((s) => Set.of(s.ancestors()))
+      .reduce((a, b) => a.intersection(b))
+      .reduce((a, b) => a.order > b.order ? a : b));
 }
