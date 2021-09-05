@@ -17,7 +17,11 @@ class ExecutionStepBase<T> implements ExecutionStep<T> {
   @visibleForOverriding
   final MutableStateTree<T> workingTree;
 
-  ExecutionStepBase._(this.workingTree);
+  ExecutionStepBase._(this.workingTree, [this._history = const {}]);
+
+  Map<String, Iterable<State<T>>> get history => _history;
+
+  final _history;
 
   /// Initialized using [RootState.initialTransition].
   factory ExecutionStepBase(RootState<T> root) {
@@ -35,33 +39,37 @@ class ExecutionStepBase<T> implements ExecutionStep<T> {
         transitions: transitions,
       );
 
-/// The smallest possible subtree containing all the transition targets.
-State<T>? getTransitionDomain(Transition<T> t) {
+  /// The smallest possible subtree containing all the transition targets.
+  State<T>? getTransitionDomain(Transition<T> t) {
     final tstates = getEffectiveTargetStates(t);
-    if (tstates.isEmpty) { return null; }
-    if (t.type == TransitionType.Internal &&  t.source!.isCompound && tstates.every((s) => s.descendsFrom(t.source!))) {
-        return t.source;
+    if (tstates.isEmpty) {
+      return null;
     }
-        return State.commonSubtree([t.source!, ...tstates]);
-}
+    if (t.type == TransitionType.Internal &&
+        t.source!.isCompound &&
+        tstates.every((s) => s.descendsFrom(t.source!))) {
+      return t.source;
+    }
+    return State.commonSubtree([t.source!, ...tstates]);
+  }
 
-/// Returns the states that will be the target when 'transition' is taken, dereferencing any history states.
+  /// Returns the states that will be the target when 'transition' is taken, dereferencing any history states.
 
-Iterable<State<T>> getEffectiveTargetStates(transition) {
-    var targets = State<T>{};
+  Set<State<T>> getEffectiveTargetStates(transition) {
+    var targets = <State<T>>{};
     for (var s in transition.targetStates) {
-        if (s is HistoryState) {
-            if (history.containsKey[s.id]) {
-                targets = targets.union(history[s.id]);
-            } else {
-                targets = targets.union(getEffectiveTargetStates(s.transition));
-            }
+      if (s is HistoryState) {
+        if (history.containsKey(s.id)) {
+          targets = targets.union(Set.of(history[s.id]!));
         } else {
-            targets.add(s);
+          targets = targets.union(getEffectiveTargetStates(s.transition));
         }
-    return targets;
+      } else {
+        targets.add(s);
+      }
     }
-
+    return targets;
+  }
 
   /// Create a new step after adding and removing states.
   @override
@@ -74,65 +82,6 @@ Iterable<State<T>> getEffectiveTargetStates(transition) {
       workingTree.removeSubtree(State.commonSubtree(remove));
     }
   }
-
-  /// Active states from the last step
-  Set<State<T>> get priorActiveStates;
-
-  // Required by built_value
-  ExecutionStepBase._();
-
-  /// All active states, including resolved history states.
-  ///
-  /// This rebuilds the entire tree from scratch (for now)
-  @override
-  @memoized
-  Set<State<T>> get activeStates =>
-      UnmodifiableSetView(Set.of(workingTree.keys));
-
-  /// All states that need [State.onEntry] called, in order.
-  @override
-  @memoized
-  Iterable<State<T>> get entryStates =>
-      activeStates.difference(priorActiveStates).toList()
-        ..sort((a, b) => a.order - b.order);
-
-  /// All states that need [State.onExit] called, in reverse order.
-  @override
-  @memoized
-  Iterable<State<T>> get exitStates =>
-      (priorActiveStates.difference(activeStates).toList()
-        ..sort((a, b) => b.order - a.order));
-
-  /// History from the prior step, or an empty set if no prior step.
-  BuiltMap<String, Iterable<State<T>>> get priorHistory;
-
-  /// Updates the history map to include exit states that need to record
-  /// the prior active configuration (i.e. they contain a history state).
-  @memoized
-  BuiltMap<String, Iterable<State<T>>> get history {
-    final b = priorHistory.toBuilder();
-    for (var s in exitStates.where((s) => s.containsHistoryState)) {
-      b[s.id!] = historyValuesFor(s);
-    }
-    return b.build();
-  }
-
-  /// True if any values have changed in this step.
-  @override
-  @memoized
-  bool get isChanged => !SetEquality().equals(activeStates, priorActiveStates);
-
-  /// The root of the tree
-  @override
-  RootState<T> get root;
-
-  /// Explicitly selected states (from transitions)
-  @override
-  Set<State<T>> get selections;
-
-  /// The transitions taken.
-  @override
-  Iterable<Transition<T>>? get transitions;
 
   /// Generates the history entry for a subtree.
   @visibleForOverriding
