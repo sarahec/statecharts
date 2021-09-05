@@ -1,4 +1,3 @@
----
 # Automatically set up mono_repo and load all the dependencies
 tasks:
   - name: pub files
