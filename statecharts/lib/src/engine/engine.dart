@@ -50,7 +50,7 @@ class Engine<T> {
   /// [callback] Signaling mechanism back to the engine.
   Engine(this.root, {T? context, ExecutionStep<T>? step, this.callback})
       : _context = context,
-        _currentStep = ExecutionStepBase.initial<T>(root);
+        _currentStep = ExecutionStepBase(root);
 
   /// The data this engine is managing.
   T? get context => _context;
