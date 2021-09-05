@@ -17,14 +17,6 @@ import 'package:statecharts/statecharts.dart';
 
 /// Contains the results of one execution step.
 abstract class ExecutionStep<T> {
-  ExecutionStep<T> applyTransitions(Iterable<Transition<T>> transitions);
-
-  /// Create a new step after adding and removing states.
-  ExecutionStep<T> applyChanges({
-    Iterable<State<T>> remove = const [],
-    Iterable<State<T>> add = const [],
-  });
-
   /// All active states, including resolved history states.
   ///
   /// This rebuilds the entire tree from scratch (for now)
@@ -47,4 +39,7 @@ abstract class ExecutionStep<T> {
 
   /// The transitions taken.
   Iterable<Transition<T>>? get transitions;
+
+  ///
+  ExecutionStep<T> applyTransitions(Iterable<Transition<T>> transitions);
 }

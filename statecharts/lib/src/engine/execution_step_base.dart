@@ -1,10 +1,8 @@
-import 'package:built_collection/built_collection.dart';
-import 'package:built_value/built_value.dart';
+import 'dart:collection';
+
 import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 import 'package:statecharts/statecharts.dart';
-
-part 'execution_step_base.g.dart';
 
 /// Contains the results of one execution step.
 ///
@@ -13,55 +11,68 @@ part 'execution_step_base.g.dart';
 /// modified copy. This makes debugging easier, including the ability to
 /// roll back the engine to a prior step by loading this object.
 ///
-abstract class ExecutionStepBase<T>
-    implements
-        ExecutionStep<T>,
-        Built<ExecutionStepBase<T>, ExecutionStepBaseBuilder<T>> {
-  factory ExecutionStepBase(
-          [void Function(ExecutionStepBaseBuilder<T>) updates]) =
-      _$ExecutionStepBase<T>;
+class ExecutionStepBase<T> implements ExecutionStep<T> {
+  StateTree<T> get tree => workingTree;
 
-  /// Generates the initial execution step using [RootState.initialTransition].
-  ///
-  /// If there's no initial transition, select the first substate under
-  /// the.
-  static ExecutionStepBase<T> initial<T>(RootState<T> root) {
-    // Collect all the explicit initial states
-    final initialStates = <State<T>>{};
-    for (var s in root.toIterable.where((probe) => probe.isCompound)) {
-      if (s.initialTransition == null) continue;
-      initialStates.addAll(s.initialTransition!.targetStates);
-    }
-    return ExecutionStepBase<T>((b) => b
-      ..root = root
-      ..selections = initialStates
-      ..priorActiveStates = {}
-      ..priorHistory = MapBuilder<String, Iterable<State<T>>>());
+  @visibleForOverriding
+  final MutableStateTree<T> workingTree;
+
+  ExecutionStepBase._(this.workingTree);
+
+  /// Initialized using [RootState.initialTransition].
+  factory ExecutionStepBase(RootState<T> root) {
+    final selections =
+        root.initialTransition?.targetStates ?? [root.substates.first];
+    return ExecutionStepBase._(MutableStateTree(root))
+      ..workingTree.addSelections(selections);
   }
 
   @override
-  ExecutionStepBase<T> applyTransitions(Iterable<Transition<T>> transitions) =>
+  ExecutionStep<T> applyTransitions(Iterable<Transition<T>> transitions) =>
       applyChanges(
         remove: transitions.map((t) => t.source!),
         add: transitions.map((t) => t.targetStates).expand((s) => s),
         transitions: transitions,
       );
 
+/// The smallest possible subtree containing all the transition targets.
+State<T>? getTransitionDomain(Transition<T> t) {
+    final tstates = getEffectiveTargetStates(t);
+    if (tstates.isEmpty) { return null; }
+    if (t.type == TransitionType.Internal &&  t.source!.isCompound && tstates.every((s) => s.descendsFrom(t.source!))) {
+        return t.source;
+    }
+        return State.commonSubtree([t.source!, ...tstates]);
+}
+
+/// Returns the states that will be the target when 'transition' is taken, dereferencing any history states.
+
+Iterable<State<T>> getEffectiveTargetStates(transition) {
+    var targets = State<T>{};
+    for (var s in transition.targetStates) {
+        if (s is HistoryState) {
+            if (history.containsKey[s.id]) {
+                targets = targets.union(history[s.id]);
+            } else {
+                targets = targets.union(getEffectiveTargetStates(s.transition));
+            }
+        } else {
+            targets.add(s);
+        }
+    return targets;
+    }
+
+
   /// Create a new step after adding and removing states.
   @override
-  ExecutionStepBase<T> applyChanges({
+  ExecutionStep<T> applyChanges({
     Iterable<State<T>> remove = const [],
     Iterable<State<T>> add = const [],
     Iterable<Transition<T>>? transitions,
   }) {
-    final b = toBuilder();
-    b.priorActiveStates = activeStates;
-    b.priorHistory = history.toBuilder();
-    b.transitions = transitions ?? [];
-    b.selections = Set.of(selections)
-      ..removeAll(remove)
-      ..addAll(add);
-    return b.build();
+    if (changeSubtrees && remove.isNotEmpty) {
+      workingTree.removeSubtree(State.commonSubtree(remove));
+    }
   }
 
   /// Active states from the last step
@@ -76,13 +87,13 @@ abstract class ExecutionStepBase<T>
   @override
   @memoized
   Set<State<T>> get activeStates =>
-      UnmodifiableSetView<State<T>>(buildTree(selections));
+      UnmodifiableSetView(Set.of(workingTree.keys));
 
   /// All states that need [State.onEntry] called, in order.
   @override
   @memoized
   Iterable<State<T>> get entryStates =>
-      activeStates.difference(priorActiveStates ?? {}).toList()
+      activeStates.difference(priorActiveStates).toList()
         ..sort((a, b) => a.order - b.order);
 
   /// All states that need [State.onExit] called, in reverse order.
@@ -169,16 +180,29 @@ abstract class ExecutionStepBase<T>
   }
 
   @visibleForOverriding
-  Set<State<T>> buildTree(Iterable<State<T>> selections,
+  void addToTree(State<T> node) {
+    if (node.parent != null) {
+      workingTree[node.parent!] = node;
+    }
+  }
+
+  @visibleForOverriding
+  void addAllToTree(Iterable<State<T>> nodes) {
+    for (var node in nodes) {
+      addToTree(node);
+    }
+  }
+
+  @visibleForOverriding
+  Iterable<State<T>> buildTree(Iterable<State<T>> selections,
       {State<T>? startNode}) {
-    final tree = <State<T>>{};
     final baseNode = startNode ?? root;
 
     // Build links back to the starting node from known states
     void _expandSelected(_selections, State<T> top) {
-      tree.addAll(_selections);
+      addAllToTree(_selections);
       for (var s in _selections) {
-        tree.addAll(s.ancestors(upTo: top));
+        addAllToTree(s.ancestors(upTo: top));
       }
     }
 
@@ -186,12 +210,13 @@ abstract class ExecutionStepBase<T>
       var probe = state;
 
       while (true) {
-        tree.add(probe);
+        addToTree(probe);
         if (probe.isAtomic) return;
 
         // Move to the substate(s)
         if (probe.isParallel) {
-          for (var s in probe.substates.where((s) => !tree.contains(s))) {
+          for (var s
+              in probe.substates.where((s) => !workingTree.containsKey(s))) {
             _addSubtree(s);
           }
         } else {
@@ -200,7 +225,7 @@ abstract class ExecutionStepBase<T>
           if (_selections == null) {
             probe = state.substates.first;
           } else {
-            tree.addAll(buildTree(_selections, startNode: state));
+            addAllToTree(buildTree(_selections, startNode: state));
             return;
           }
         }
@@ -209,7 +234,7 @@ abstract class ExecutionStepBase<T>
 
     if (selections.isEmpty) {
       _addSubtree(baseNode);
-      return tree;
+      return workingTree.keys;
     }
 
     final concreteSelections = replaceHistoryStates(selections);
@@ -217,7 +242,6 @@ abstract class ExecutionStepBase<T>
     for (var s in concreteSelections.where((s) => s.isCompound)) {
       _addSubtree(s);
     }
-    tree.add(baseNode);
-    return tree;
+    return workingTree.keys;
   }
 }
