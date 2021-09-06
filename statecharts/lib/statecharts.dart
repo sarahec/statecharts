@@ -72,6 +72,7 @@ export 'src/engine/engine.dart';
 export 'src/engine/engine_callback.dart';
 export 'src/engine/execution_step.dart';
 export 'src/engine/execution_step_base.dart';
+export 'src/engine/sort_extensions.dart';
 export 'src/engine/state_tree.dart';
 export 'src/statechart/state.dart';
 export 'src/statechart/history_state.dart';
