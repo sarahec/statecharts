@@ -23,6 +23,18 @@ class ExecutionStepBase<T> implements ExecutionStep<T> {
 
   final _history;
 
+  @override
+  Iterable<State<T>> get entryStates => _entryStates.sorted;
+
+  @override
+  Iterable<State<T>> get exitStates => _exitStates.reverseSorted;
+
+  @override
+  Iterable<State<T>> get activeStates => workingTree.toIterable;
+
+  final _exitStates = <State<T>>{};
+  final _entryStates = <State<T>>{};
+
   /// Initialized using [RootState.initialTransition].
   factory ExecutionStepBase(RootState<T> root) {
     final selections =
@@ -53,8 +65,23 @@ class ExecutionStepBase<T> implements ExecutionStep<T> {
     return State.commonSubtree([t.source!, ...tstates]);
   }
 
-  /// Returns the states that will be the target when 'transition' is taken, dereferencing any history states.
+  Set<State<T>> computeExitSet(Iterable<Transition<T>> transitions) {
+    final statesToExit = <State<T>>{};
+    final configuration = Set.of(workingTree.toIterable);
+    for (var t in transitions) {
+      final domain = getTransitionDomain(t);
+      if (domain != null) {
+        for (var cs in configuration) {
+          if (cs.descendsFrom(domain)) {
+            statesToExit.add(cs);
+          }
+        }
+      }
+    }
+    return statesToExit;
+  }
 
+  /// Returns the states that will be the target when 'transition' is taken, dereferencing any history states.
   Set<State<T>> getEffectiveTargetStates(transition) {
     var targets = <State<T>>{};
     for (var s in transition.targetStates) {

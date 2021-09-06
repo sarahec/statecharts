@@ -166,10 +166,3 @@ void main() {
 }
 
 /// Testing utility
-extension IDs<T> on Iterable<State<T>> {
-  /// The [id] values of all states sorted by [order]
-  Iterable<String> get ids => [for (var s in sorted) s.id ?? '_'];
-
-  Iterable<State<T>> get sorted =>
-      (toList()..sort((a, b) => a.order.compareTo(b.order)));
-}
