@@ -24,3 +24,6 @@ github:
     # add a "Review in Gitpod" button to the pull request's description (defaults to false)
     addBadge: false
 
+vscode:
+  extensions:
+    - Dart-Code.dart-code@3.26.0
