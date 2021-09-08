@@ -30,7 +30,7 @@ class ExecutionStepBase<T> implements ExecutionStep<T> {
   Iterable<State<T>> get exitStates => _exitStates.reverseSorted;
 
   @override
-  Iterable<State<T>> get activeStates => workingTree.toIterable;
+  Set<State<T>> get activeStates => Set.of(workingTree.toIterable);
 
   final _exitStates = <State<T>>{};
   final _entryStates = <State<T>>{};
@@ -44,14 +44,12 @@ class ExecutionStepBase<T> implements ExecutionStep<T> {
   }
 
   @override
+  // TODO Write applyTransitions
   ExecutionStep<T> applyTransitions(Iterable<Transition<T>> transitions) =>
-      applyChanges(
-        remove: transitions.map((t) => t.source!),
-        add: transitions.map((t) => t.targetStates).expand((s) => s),
-        transitions: transitions,
-      );
+      throw UnimplementedError();
 
   /// The smallest possible subtree containing all the transition targets.
+  @visibleForOverriding
   State<T>? getTransitionDomain(Transition<T> t) {
     final tstates = getEffectiveTargetStates(t);
     if (tstates.isEmpty) {
@@ -65,7 +63,11 @@ class ExecutionStepBase<T> implements ExecutionStep<T> {
     return State.commonSubtree([t.source!, ...tstates]);
   }
 
-  Set<State<T>> computeExitSet(Iterable<Transition<T>> transitions) {
+  /// The states to be exited after these transitions
+  @visibleForOverriding
+  Set<State<T>> computeExitSet(
+      {required Iterable<Transition<T>> transitions,
+      required Iterable<State<T>> configuration}) {
     final statesToExit = <State<T>>{};
     final configuration = Set.of(workingTree.toIterable);
     for (var t in transitions) {
@@ -81,7 +83,8 @@ class ExecutionStepBase<T> implements ExecutionStep<T> {
     return statesToExit;
   }
 
-  /// Returns the states that will be the target when 'transition' is taken, dereferencing any history states.
+  /// All targets of 'transition' after replacing any history states.
+  @visibleForOverriding
   Set<State<T>> getEffectiveTargetStates(transition) {
     var targets = <State<T>>{};
     for (var s in transition.targetStates) {
@@ -105,9 +108,8 @@ class ExecutionStepBase<T> implements ExecutionStep<T> {
     Iterable<State<T>> add = const [],
     Iterable<Transition<T>>? transitions,
   }) {
-    if (changeSubtrees && remove.isNotEmpty) {
-      workingTree.removeSubtree(State.commonSubtree(remove));
-    }
+    // TODO Implement applyChanges
+    throw UnimplementedError();
   }
 
   /// Generates the history entry for a subtree.
