@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:async';
-
 import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 import 'package:quiver/core.dart';
@@ -29,100 +27,81 @@ import 'package:statecharts/statecharts.dart';
 /// ```
 /// const turnOn = 'turnOn';
 /// const turnOff = 'turnOff';
-/// final res = StateResolver<Lightbulb>();
 /// final stateOff = State<Lightbulb>('off',
 ///    transitions: [
-///     res.transition(targets: ['on'], event: turnOn)
+///     Transition(targets: ['on'], event: turnOn)
 ///   ],
 ///   onEntry: (b, _) => b!.isOn = false);
 /// final stateOn = State<Lightbulb>('on',
 ///    transitions: [
-///      res.transition(targets: ['off'], event: turnOff)
+///      Transition(targets: ['off'], event: turnOff)
 ///    ],
 ///    onEntry: (b, _) => b!.isOn = true,
 ///    onExit: (b, _) {
 ///      b!.cycleCount += 1;
 ///    });
 ///
-/// final lightswitch = RootState.newRoot<Lightbulb>(
+/// final lightswitch = RootState<Lightbulb>(
 ///    'lightswitch',
 ///    [
 ///      stateOff,
 ///      stateOn,
-///    ],
-///    resolver: res);
+///    ]);
 /// ```
 ///
 class RootState<T> extends State<T> {
-  final StateResolver<T> resolver;
-  var _stateMap;
+  late final Map<String, State<T>> stateMap;
 
-  @visibleForTesting
-  RootState(this.resolver, id, transitions, onEntry, onExit, isFinal,
-      isParallel, substates, initialTransition)
-      : super._(id, transitions.cast<Future<Transition<T>>>(), onEntry, onExit,
-            isFinal, isParallel, substates, initialTransition);
-
-  @override
-  bool operator ==(Object other) =>
-      other is RootState<T> &&
-      id == other.id &&
-      isFinal == other.isFinal &&
-      isParallel == other.isParallel &&
-      IterableEquality().equals(substates, other.substates);
-
-  /// Locate a state by ID. Returns null if not found.
-  State<T>? find(String id) {
-    _stateMap ??= {
+  /// Create the root node.
+  RootState(id,
+      {required Iterable<State<T>> substates,
+      Iterable<Transition<T>> transitions = const [],
+      Action? onEntry,
+      Action? onExit,
+      bool isFinal = false,
+      bool isParallel = false,
+      Transition<T>? initialTransition})
+      : assert(substates.isNotEmpty, 'At least one substate required'),
+        super(id,
+            substates: substates,
+            transitions: transitions,
+            onEntry: onEntry,
+            onExit: onExit,
+            isFinal: isFinal,
+            isParallel: isParallel,
+            initialTransition: initialTransition) {
+    stateMap = {
       for (var s in toIterable.where((s1) => s1.id != null)) s.id!: s
     };
-    return _stateMap[id];
+    order = 0;
+    parent = null;
+    resolveTransitions(stateMap);
+    finishTree();
   }
 
   // Resolve the transition futures into transitions pointing to
   // actual states.
-  @visibleForTesting
-  Future<RootState<T>> finishTree() async {
-    var order = 1;
+  /// Locate a state by ID. Returns null if not found.
+  State<T>? find(String id) => stateMap[id];
 
-    Future<void> finishNode(State<T> node) async {
+  @visibleForOverriding
+  void finishTree() {
+    var _order = 1;
+
+    void finishSubstates(State<T> node) {
       for (var s in node.substates) {
         s.parent = node;
-        s.order = order++;
-        await Future.wait(s.transitions).then((transitions) {
-          for (var t in transitions) {
-            t.source = s;
-          }
-        });
-        await finishNode(s);
+        s.order = _order++;
+        s.resolveTransitions(stateMap);
+        finishSubstates(s);
       }
     }
 
-    parent = null;
-    this.order = 0;
-    await finishNode(this);
-    return this;
+    finishSubstates(this);
   }
 
   @override
   String toString() => "('$id', $substates)";
-
-  /// Create the root node. This
-  static Future<RootState<T>> newRoot<T>(id, substates,
-      {transitions = const [],
-      onEntry,
-      onExit,
-      isFinal = false,
-      isParallel = false,
-      initialTransition,
-      resolver}) async {
-    assert(substates.isNotEmpty, 'At least one substate required');
-    var res = resolver ?? StateResolver<T>();
-    final root = RootState<T>(res, id, transitions, onEntry, onExit, isFinal,
-        isParallel, substates, initialTransition);
-    res.complete(root);
-    return Future.value(root).then((tree) => tree.finishTree());
-  }
 }
 
 class State<T> {
@@ -142,7 +121,7 @@ class State<T> {
   final Iterable<State<T>> substates;
 
   /// All transitions from this state.
-  final Iterable<Future<Transition<T>>> transitions;
+  final Iterable<Transition<T>> transitions;
 
   /// Action to be performed when this state or container is entered
   final Action<T>? onEntry;
@@ -153,7 +132,7 @@ class State<T> {
   /// The transition to run first.
   ///
   /// If null, the first substate is entered.
-  final Future<Transition<T>>? initialTransition;
+  final Transition<T>? initialTransition;
 
   /// This node's parent (assigned late)
   late final State<T>? parent;
@@ -168,26 +147,17 @@ class State<T> {
   /// [substates] The child states of this state, if any.
   /// [initialTransition] A transition designating which substate shoud be
   /// activated on entry.
-  factory State(id,
-      {Iterable<Future<Transition<T>>> transitions = const [],
-      Action<T>? onEntry,
-      Action<T>? onExit,
-      bool isFinal = false,
-      bool isParallel = false,
-      Iterable<State<T>> substates = const [],
-      Future<Transition<T>>? initialTransition}) {
-    return State._(id, transitions, onEntry, onExit, isFinal, isParallel,
-        substates.cast<State<T>>(), initialTransition);
-  }
-
-  State._(this.id, this.transitions, this.onEntry, this.onExit, this.isFinal,
-      this.isParallel, this.substates, this.initialTransition);
+  State(this.id,
+      {this.transitions = const [],
+      this.onEntry,
+      this.onExit,
+      this.isFinal = false,
+      this.isParallel = false,
+      this.substates = const [],
+      this.initialTransition});
 
   /// Are any of the immediate substates a history state?
   bool get containsHistoryState => substates.any((s) => s is HistoryState<T>);
-
-  @override
-  int get hashCode => hashObjects([id, isParallel, isFinal, substates]);
 
   /// True if this has no substates (i.e. is a leaf node)
   bool get isAtomic => substates.isEmpty;
@@ -206,14 +176,6 @@ class State<T> {
 
     yield* _toIterable(this);
   }
-
-  @override
-  bool operator ==(Object other) =>
-      other is State<T> &&
-      id == other.id &&
-      isFinal == other.isFinal &&
-      isParallel == other.isParallel &&
-      IterableEquality().equals(substates, other.substates);
 
   /// Determines all the active states in this subtree.
   ///
@@ -268,6 +230,14 @@ class State<T> {
     if (onExit != null && context != null) onExit!(context, callback);
   }
 
+  /// Adds target states and source reference to all transitions.
+  void resolveTransitions(Map<String, State<T>> stateMap) {
+    initialTransition?.resolveStates(this, stateMap);
+    for (var t in transitions) {
+      t.resolveStates(this, stateMap);
+    }
+  }
+
   @override
   String toString() => "('$id', $substates)";
 
@@ -278,15 +248,14 @@ class State<T> {
   /// [elapsedTime] A time value, as used in time-based transitions.
   /// [context] Used to evaluate [Transition.condition] to see if it should match. (If the condition is non-null and [ignoreContext] is not `true`)
   /// [ignoreContext] If `true`, skip the [Transition.condition] check.
-  Future<Transition<T>?> transitionFor(
+  Transition<T>? transitionFor(
           {String? event,
           Duration? elapsedTime,
           T? context,
-          bool? ignoreContext = false}) async =>
-      Future.wait(transitions).then((transitionList) =>
-          transitionList.firstWhereOrNull((t) => t.matches(
-              anEvent: event,
-              elapsedTime: elapsedTime,
-              context: context,
-              ignoreContext: ignoreContext)));
+          bool? ignoreContext = false}) =>
+      transitions.firstWhereOrNull((t) => t.matches(
+          anEvent: event,
+          elapsedTime: elapsedTime,
+          context: context,
+          ignoreContext: ignoreContext));
 }
