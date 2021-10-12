@@ -1,11 +1,12 @@
 # List the start up tasks. Learn more https://www.gitpod.io/docs/config-start-tasks/
 tasks:
   - init: \
-      export PUB_CACHE = /workspace/.pub-cache
+      PUB_CACHE = /workspace/.pub-cache
       dart pub activate mono_repo
       mono_repo pub get
     command: \
-      export PATH="$PATH":"$HOME/.pub-cache/bin"
+      echo $PUB_CACHE
+      PATH="$PATH":"$PUB_CACHE"
 
 
 image:
