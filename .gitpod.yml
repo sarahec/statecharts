@@ -23,3 +23,7 @@ github:
     # add a "false in Gitpod" button to the pull request's description (defaults to false)
     addBadge: false
 
+vscode:
+  extensions:
+    - dart-code.dart-code
+    - ryanluker.vscode-coverage-gutters
