@@ -16,14 +16,15 @@
 import 'package:collection/collection.dart';
 import 'package:statecharts/statecharts.dart';
 
+enum NodeType { none, entry, defaultEntry, exit };
+
 class MutableStateTree<T> implements StateTree<T> {
   @override
   final RootState<T> root;
   final int _length;
   final List<Iterable<State<T>>?> _substates;
-  final _entryStates = <State<T>>[];
-  final _exitStates = <State<T>>[];
-
+  final List<NodeType> _nodeTypes;
+  
   @override
   Iterable<State<T>> get entryStates => UnmodifiableListView(_entryStates);
 
@@ -34,10 +35,11 @@ class MutableStateTree<T> implements StateTree<T> {
     final length = root.toIterable.length;
     final substates =
         List<Iterable<State<T>>?>.filled(length, null, growable: false);
-    return MutableStateTree._(root, length, substates);
+    final nodeTypes = List<NodeType>.filled(length, NodeType.none, growable: false);
+    return MutableStateTree._(root, length, substates, nodeTypes);
   }
 
-  MutableStateTree._(this.root, this._length, this._substates);
+  MutableStateTree._(this.root, this._length, this._substates, this._nodeTypes);
 
   @override
   bool get isEmpty => _substates.every((element) => element == null);
@@ -84,14 +86,14 @@ class MutableStateTree<T> implements StateTree<T> {
 
   void addSelections(Iterable<State<T>> selections) {
     for (var s in selections) {
-      addAncestors(s);
+      addDescendents(s);
     }
     for (var s in selections) {
-      addDescendents(s);
+      addAncestors(s);
     }
   }
 
-  MutableStateTree<T> clone() => MutableStateTree._(root, _length, _substates);
+  MutableStateTree<T> clone() => MutableStateTree._(root, _length, List.of(_substates, growable: false), List<NodeType>.filled(_length, NodeType.none, growable: false));
 
   void removeAll(Iterable<State<T>> nodes) {
     for (var s in nodes) {
