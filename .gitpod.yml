@@ -7,7 +7,7 @@ tasks:
       $PUB_CACHE/bin/mono_repo pub get
     command: |
       export PUB_CACHE="/workspace/.pub-cache"
-      export PATH="$PATH":"$PUB_CACHE"
+      export PATH="$PATH":"$PUB_CACHE/bin"
 
 image:
   file: .gitpod.Dockerfile
