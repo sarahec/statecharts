@@ -12,7 +12,7 @@ github:
     # enable for the default branch (defaults to true)
     master: true
     # enable for all branches in this repo (defaults to false)
-    branches: false
+    branches: true
     # enable for pull requests coming from this repo (defaults to true)
     pullRequests: false
     # enable for pull requests coming from forks (defaults to false)
@@ -26,4 +26,5 @@ github:
 
 vscode:
   extensions:
-    - Dart-Code.dart-code@3.26.0
+    - dart-code.dart-code
+    - ryanluker.vscode-coverage-gutters
