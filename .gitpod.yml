@@ -33,5 +33,3 @@ vscode:
   extensions:
     - dart-code.dart-code
     - ryanluker.vscode-coverage-gutters
-    - eamodio.gitlens
-    - github.vscode-pull-request-github
