@@ -8,3 +8,5 @@ ENV PUB_CACHE=/workspace/.pub_cache
 
 # add executables to PATH
 RUN echo 'export PATH=${PUB_CACHE}/bin:$PATH' >>~/.bashrc
+
+ENV DF_VERSION=2
