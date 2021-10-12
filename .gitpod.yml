@@ -4,7 +4,7 @@ tasks:
     init: |
       export PUB_CACHE = /workspace/.pub-cache
       dart pub global activate mono_repo
-      mono_repo pub get
+      $PUB_CACHE/bin/mono_repo pub get
     command: |
       export PUB_CACHE = /workspace/.pub-cache
       export PATH="$PATH":"$PUB_CACHE"
