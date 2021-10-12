@@ -3,7 +3,7 @@ tasks:
   - name: pub files
     init: |
       PUB_CACHE = /workspace/.pub-cache
-      dart pub activate mono_repo
+      dart pub global activate mono_repo
       mono_repo pub get
     command: |
       PATH="$PATH":"/workspace/.pub-cache"
