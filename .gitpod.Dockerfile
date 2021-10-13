@@ -4,7 +4,7 @@ FROM gitpod/workspace-full
 RUN brew tap dart-lang/dart && brew install dart
 
 # Change the PUB_CACHE to /workspace so dependencies are preserved.
-ENV PUB_CACHE=/workspace/.pub_cache
+ENV PUB_CACHE=/workspace/.pub-cache
 
 # add executables to PATH
 RUN echo 'export PATH=${PUB_CACHE}/bin:$PATH' >>~/.bashrc
