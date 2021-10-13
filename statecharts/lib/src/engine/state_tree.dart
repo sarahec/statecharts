@@ -16,7 +16,7 @@
 import 'package:collection/collection.dart';
 import 'package:statecharts/statecharts.dart';
 
-enum NodeType { none, entry, defaultEntry, exit };
+enum NodeType { none, entry, defaultEntry, exit }
 
 class MutableStateTree<T> implements StateTree<T> {
   @override
@@ -24,18 +24,19 @@ class MutableStateTree<T> implements StateTree<T> {
   final int _length;
   final List<Iterable<State<T>>?> _substates;
   final List<NodeType> _nodeTypes;
-  
-  @override
-  Iterable<State<T>> get entryStates => UnmodifiableListView(_entryStates);
 
   @override
-  Iterable<State<T>> get exitStates => UnmodifiableListView(_exitStates);
+  Iterable<State<T>> get entryStates => List.empty();
+
+  @override
+  Iterable<State<T>> get exitStates => List.empty();
 
   factory MutableStateTree(RootState<T> root) {
     final length = root.toIterable.length;
     final substates =
         List<Iterable<State<T>>?>.filled(length, null, growable: false);
-    final nodeTypes = List<NodeType>.filled(length, NodeType.none, growable: false);
+    final nodeTypes =
+        List<NodeType>.filled(length, NodeType.none, growable: false);
     return MutableStateTree._(root, length, substates, nodeTypes);
   }
 
@@ -93,7 +94,11 @@ class MutableStateTree<T> implements StateTree<T> {
     }
   }
 
-  MutableStateTree<T> clone() => MutableStateTree._(root, _length, List.of(_substates, growable: false), List<NodeType>.filled(_length, NodeType.none, growable: false));
+  MutableStateTree<T> clone() => MutableStateTree._(
+      root,
+      _length,
+      List.of(_substates, growable: false),
+      List<NodeType>.filled(_length, NodeType.none, growable: false));
 
   void removeAll(Iterable<State<T>> nodes) {
     for (var s in nodes) {
