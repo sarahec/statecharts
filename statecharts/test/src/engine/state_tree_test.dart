@@ -13,8 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'package:statecharts/src/engine/state_tree.dart';
-import 'package:statecharts/state.dart';
+import 'package:statecharts/statecharts.dart';
 import 'package:test/test.dart';
 
 import '../examples/lightswitch.dart';

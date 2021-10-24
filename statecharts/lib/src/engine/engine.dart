@@ -36,7 +36,6 @@ class Engine<T> {
   /// The root of the tree (statechart).
   final RootState<T> root;
 
-  T? _context;
   ExecutionStep<T> _currentStep;
 
   /// Passed to [Transition.action], [State.onEntry], and [State.onExit].
@@ -49,23 +48,17 @@ class Engine<T> {
   /// [step] The current step. If unspecified, creates a new, initial step.
   /// [callback] Signaling mechanism back to the engine.
   Engine(this.root, {T? context, ExecutionStep<T>? step, this.callback})
-      : _context = context,
-        _currentStep = ExecutionStepBase(root);
+      : _currentStep = ExecutionStep(StateTree(root), context);
 
   /// The data this engine is managing.
-  T? get context => _context;
+  T? get context => _currentStep.context;
 
   /// Current execution state.
   ExecutionStep<T> get currentStep => _currentStep;
 
-  /// Runs transitions, [State.onEntry], and [State.onExit] for the current context.
-  @visibleForOverriding
-  T? applyChanges(ExecutionStep<T> step, T? context) {
-    runTransitions(step.transitions ?? [], context, callback);
-    runExitStates(step, context, callback);
-    runEntryStates(step, context, callback);
-    return context;
-  }
+  T? buildContext(dynamic ctx) => ctx;
+
+  dynamic contextToBuilder(T? context) => context;
 
   /// Executes the matching transitions, returning `true` if anything changes.
   ///
@@ -74,53 +67,88 @@ class Engine<T> {
   /// [anEvent] The event name to match.
   /// [elapsedTime] The time to match.
   bool execute({String? anEvent, Duration? elapsedTime}) {
-    final transitions =
-        getTransitions(_currentStep, anEvent, elapsedTime, _context);
-    final step_n = nextStep(_currentStep, transitions);
-    if (step_n.isChanged) {
-      _context = applyChanges(step_n, _context);
-      _currentStep = step_n;
+    final transitions = getTransitions(_currentStep, anEvent, elapsedTime);
+    if (transitions.isEmpty) {
+      return false;
     }
-    return step_n.isChanged;
+
+    final tree = currentStep.tree.toBuilder();
+    final history = currentStep.history.toBuilder();
+    final ctx = contextToBuilder(currentStep.context);
+    runTransitionActions(transitions, ctx, callback);
+    runExitStates(tree, ctx, callback);
+    runEntryStates(tree, ctx, callback);
+    final context = buildContext(ctx);
+    _currentStep =
+        ExecutionStep(tree.build(), context, transitions, history.build());
+    return true;
+  }
+
+  /// All targets of 'transition' after replacing any history states.
+  @visibleForOverriding
+  Set<State<T>> getEffectiveTargetStates(transition, History<T> history) {
+    var targets = <State<T>>{};
+    for (var s in transition.targetStates) {
+      if (s is HistoryState<T>) {
+        if (history.contains(s)) {
+          targets = targets.union(Set.of(history[s]!));
+        } else {
+          targets =
+              targets.union(getEffectiveTargetStates(s.transition, history));
+        }
+      } else {
+        targets.add(s);
+      }
+    }
+    return targets;
+  }
+
+  /// The smallest possible subtree containing all the transition targets.
+  @visibleForOverriding
+  State<T>? getTransitionDomain(Transition<T> t, History<T> history) {
+    final tstates = getEffectiveTargetStates(t, history);
+    if (tstates.isEmpty) {
+      return null;
+    }
+    if (t.type == TransitionType.Internal &&
+        t.source!.isCompound &&
+        tstates.every((s) => s.descendsFrom(t.source!))) {
+      return t.source;
+    }
+    return State.commonSubtree([t.source!, ...tstates]);
   }
 
   /// Locates the transactions used by [execute].
   @visibleForOverriding
-  Iterable<Transition<T>> getTransitions(ExecutionStep<T> step, String? anEvent,
-          Duration? elapsedTime, T? context) =>
+  Iterable<Transition<T>> getTransitions(
+          ExecutionStep<T> step, String? anEvent, Duration? elapsedTime) =>
       [
-        for (var s in step.activeStates)
+        for (var s in step.tree.toIterable)
           s.transitionFor(
-              event: anEvent, elapsedTime: elapsedTime, context: context)
+              event: anEvent, elapsedTime: elapsedTime, context: step.context)
       ].where((t) => t != null).cast<Transition<T>>();
-
-  /// Calculates the next step from the previous step and identified transitions.
-  @visibleForOverriding
-  ExecutionStep<T> nextStep(
-          ExecutionStep<T> step, Iterable<Transition<T>> transitions) =>
-      step.applyTransitions(transitions);
 
   /// Calls [State.onEntry] on the step's entry states.
   @visibleForOverriding
-  void runEntryStates(ExecutionStep<T> step, T? context,
+  void runEntryStates(StateTree<T> tree, T? context,
       [EngineCallback? callback]) {
-    for (var s in step.entryStates) {
-      s.enter(context);
+    for (var s in tree.entryStates) {
+      s.enter(context, callback);
     }
   }
 
   /// Calls [State.onExit] on the step's exit states.
   @visibleForOverriding
-  void runExitStates(ExecutionStep<T> step, T? context,
+  void runExitStates(StateTree<T> tree, T? context,
       [EngineCallback? callback]) {
-    for (var s in step.exitStates) {
-      s.exit(context);
+    for (var s in tree.exitStates) {
+      s.exit(context, callback);
     }
   }
 
   /// Runs [Transition.action] for the selected transitions.
   @visibleForOverriding
-  void runTransitions(Iterable<Transition<T>> transitions, T? context,
+  void runTransitionActions(Iterable<Transition<T>> transitions, T? context,
       [EngineCallback? callback]) {
     for (var t in transitions) {
       if (t.action != null) t.action!(context, callback);
