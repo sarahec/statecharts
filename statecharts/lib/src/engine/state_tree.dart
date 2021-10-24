@@ -108,6 +108,7 @@ class MutableStateTree<T> implements StateTree<T> {
 
   void removeSubtree(State<T> node) => removeAll(subtreeOf(node));
 
+  @override
   Iterable<State<T>> subtreeOf(State<T> node) sync* {
     var probe = node;
     yield probe;
@@ -126,6 +127,11 @@ class MutableStateTree<T> implements StateTree<T> {
       }
     }
   }
+
+  @override
+  MutableStateTree<T> toBuilder() => this;
+
+  StateTree<T> build() => this;
 }
 
 abstract class StateTree<T> {
@@ -137,5 +143,11 @@ abstract class StateTree<T> {
 
   RootState<T> get root;
 
+  Iterable<State<T>> subtreeOf(State<T> node);
+
   Iterable<State<T>> get toIterable;
+
+  factory StateTree(RootState<T> root) => MutableStateTree(root);
+
+  MutableStateTree<T> toBuilder() => this as MutableStateTree<T>;
 }

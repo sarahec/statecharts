@@ -16,30 +16,18 @@
 import 'package:statecharts/statecharts.dart';
 
 /// Contains the results of one execution step.
-abstract class ExecutionStep<T> {
-  /// All active states, including resolved history states.
-  ///
-  /// This rebuilds the entire tree from scratch (for now)
-  Set<State<T>> get activeStates;
+class ExecutionStep<T> {
+  /// History values used in this step
+  final History<T> history;
 
-  /// All states that need [State.onEntry] called, in order.
-  Iterable<State<T>> get entryStates;
+  final Iterable<Transition<T>> transitions;
 
-  /// All states that need [State.onExit] called, in reverse order.
-  Iterable<State<T>> get exitStates;
+  final StateTree<T> tree;
 
-  /// True if any values have changed in this step.
-  bool get isChanged;
+  final T? context;
 
-  /// The root of the tree
-  RootState<T> get root;
-
-  /// Explicitly selected states (from transitions)
-  Set<State<T>> get selections;
-
-  /// The transitions taken.
-  Iterable<Transition<T>>? get transitions;
-
-  ///
-  ExecutionStep<T> applyTransitions(Iterable<Transition<T>> transitions);
+  ExecutionStep(StateTree<T> tree,
+      [this.context, this.transitions = const [], History<T>? history])
+      : tree = tree,
+        history = history ?? History(tree.root);
 }
