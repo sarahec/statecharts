@@ -35,5 +35,14 @@ void main() {
       expect(tree!.entryStates.ids, equals(['lightswitch', 'off']));
       expect(tree!.exitStates, isEmpty);
     });
+
+    test('switch states', () {
+      final b = tree!.toBuilder();
+      b.removeSubtree(b.find('off')!);
+      b.addState(b.find('on')!);
+      expect(b.activeStates.ids, equals(['lightswitch', 'on']));
+      expect(b.entryStates.ids, equals(['on']));
+      expect(b.exitStates.ids, equals(['off']));
+    });
   });
 }
