@@ -29,8 +29,10 @@ void main() {
       tree = MutableStateTree(root!);
     });
 
-    test('initialization', () {
-      expect(tree!.entryStates, isEmpty);
+    // There's no initial transition, so all active nodes should be flagged
+    // as "initial"
+    test('selects initial states', () {
+      expect(tree!.entryStates.ids, equals(['lightswitch', 'off']));
       expect(tree!.exitStates, isEmpty);
     });
   });
