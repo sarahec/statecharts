@@ -77,6 +77,7 @@ class Engine<T> {
     final ctx = contextToBuilder(currentStep.context);
     runTransitionActions(transitions, ctx, callback);
     runExitStates(tree, ctx, callback);
+    runDefaultEntries(tree, ctx, callback);
     runEntryStates(tree, ctx, callback);
     final context = buildContext(ctx);
     _currentStep =
@@ -127,6 +128,11 @@ class Engine<T> {
           s.transitionFor(
               event: anEvent, elapsedTime: elapsedTime, context: step.context)
       ].where((t) => t != null).cast<Transition<T>>();
+
+  void runDefaultEntries(
+      MutableStateTree<T> tree, ctx, EngineCallback? callback) {
+    throw UnimplementedError();
+  }
 
   /// Calls [State.onEntry] on the step's entry states.
   @visibleForOverriding
