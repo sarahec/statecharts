@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'package:collection/collection.dart';
 import 'package:statecharts/statecharts.dart';
 
 class MutableStateTree<T> implements StateTree<T> {
@@ -130,6 +131,11 @@ class MutableStateTree<T> implements StateTree<T> {
   /// Returns an immutable copy of this tree.
   StateTree<T> build() => this;
 
+  /// Finds the state with the matching ID.
+  @override
+  State<T>? find(String id) =>
+      _substates.firstWhereOrNull((info) => info.state.id == id)?.state;
+
   bool isSelected(State<T> s) => !(const [NodeType.none, NodeType.exit]
       .contains(_substates[s.order].type));
 
@@ -183,6 +189,7 @@ class MutableStateTree<T> implements StateTree<T> {
     }
   }
 
+  // Locates the node with the given ID
   /// Copies an immutable [StateTree] into a fresh mutable one.
   ///
   /// This also converts `entry` nodes into `selected` and prunes `exit` nodes.
@@ -234,6 +241,8 @@ abstract class StateTree<T> {
   RootState<T> get root;
 
   Iterable<State<T>> get toIterable;
+
+  State<T>? find(String id);
 
   Iterable<State<T>> subtreeOf(State<T> node);
 
