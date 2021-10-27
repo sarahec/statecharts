@@ -131,7 +131,9 @@ class Engine<T> {
 
   void runDefaultEntries(
       MutableStateTree<T> tree, ctx, EngineCallback? callback) {
-    throw UnimplementedError();
+    for (var s in tree.defaultEntryStates) {
+      s.enter(context, callback);
+    }
   }
 
   /// Calls [State.onEntry] on the step's entry states.
