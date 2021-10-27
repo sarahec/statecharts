@@ -56,6 +56,20 @@ class Engine<T> {
   /// Current execution state.
   ExecutionStep<T> get currentStep => _currentStep;
 
+  /// Updates the nodes in the tree by applying [transitions] in document order.
+  void applyTransitions(Iterable<Transition<T>> transitions,
+      MutableStateTree<T> tree, History<T> history) {
+    final orderedTransitions = List.of(transitions, growable: false)
+      ..sort((t1, t2) => (t2.source?.order ?? 0) - (t1.source?.order ?? 0));
+    for (var t in orderedTransitions) {
+      final domain = getTransitionDomain(t, history);
+      assert(domain != null);
+      tree.removeSubtree(domain!);
+      tree.addSelections(
+          [for (var targetID in t.targets) tree.find(targetID)!]);
+    }
+  }
+
   T? buildContext(dynamic ctx) => ctx;
 
   dynamic contextToBuilder(T? context) => context;
@@ -75,6 +89,8 @@ class Engine<T> {
     final tree = currentStep.tree.toBuilder();
     final history = currentStep.history.toBuilder();
     final ctx = contextToBuilder(currentStep.context);
+
+    applyTransitions(transitions, tree, history);
     runTransitionActions(transitions, ctx, callback);
     runExitStates(tree, ctx, callback);
     runDefaultEntries(tree, ctx, callback);
