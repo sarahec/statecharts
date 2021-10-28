@@ -140,7 +140,7 @@ class Engine<T> {
   Iterable<Transition<T>> getTransitions(
           ExecutionStep<T> step, String? anEvent, Duration? elapsedTime) =>
       [
-        for (var s in step.tree.toIterable)
+        for (var s in step.tree.activeStates)
           s.transitionFor(
               event: anEvent, elapsedTime: elapsedTime, context: step.context)
       ].where((t) => t != null).cast<Transition<T>>();
