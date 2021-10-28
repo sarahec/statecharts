@@ -28,6 +28,7 @@ class ExecutionStep<T> {
 
   ExecutionStep(StateTree<T> tree,
       [this.context, this.transitions = const [], History<T>? history])
+      // ignore: prefer_initializing_formals
       : tree = tree,
         history = history ?? History(tree.root);
 }
