@@ -50,9 +50,6 @@ class MutableStateTree<T> implements StateTree<T> {
   @override
   bool get isEmpty => _substates.every((info) => info.type == NodeType.none);
 
-  @override
-  Iterable<State<T>> get toIterable => subtreeOf(root);
-
   /// Adds [node] and all of its ancestors up to [root].
   void addAncestors(State<T> node, [NodeType type = NodeType.entry]) {
     var probe = node;
@@ -239,8 +236,6 @@ abstract class StateTree<T> {
   bool get isEmpty;
 
   RootState<T> get root;
-
-  Iterable<State<T>> get toIterable;
 
   State<T>? find(String id);
 
