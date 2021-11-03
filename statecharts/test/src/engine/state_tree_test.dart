@@ -23,8 +23,8 @@ void main() {
   test('initial states (default)', () {
     final tree = StateTree(lightswitch);
 
-    expect(tree.activeStates.ids, equals(['lightswitch']));
-    expect(tree.entryStates.ids, equals(['lightswitch']));
+    expect(tree.activeStates.ids,isEmpty);
+    expect(tree.entryStates.ids, isEmpty);
     expect(tree.exitStates, isEmpty);
   });
 
