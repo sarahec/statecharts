@@ -20,7 +20,7 @@ class History<T> {
   Iterable<State<T>> historyValuesFor(State<T> s, StateTree<T> tree) {
     assert(s.containsHistoryState);
     // Since this is called for states that are exiting, we have to use the prior active states
-    final activeChildren = tree.subtreeOf(s);
+    final activeChildren = tree.descendents(s);
     final historyChildren = s.substates.whereType<HistoryState>();
     // From the spec:
     // If the 'type' of a <history> element is "shallow", the SCXML processor
@@ -38,7 +38,7 @@ class History<T> {
         result.addAll(activeChildren);
       } else {
         final deepChildren = [
-          for (var c in activeChildren) tree.subtreeOf(c).last
+          for (var c in activeChildren) tree.descendents(c).last
         ];
         result.addAll(deepChildren);
       }

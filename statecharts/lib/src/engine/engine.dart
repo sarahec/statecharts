@@ -57,17 +57,24 @@ class Engine<T> {
   ExecutionStep<T> get currentStep => _currentStep;
 
   /// Updates the nodes in the tree by applying [transitions] in document order.
-  void applyTransitions(Iterable<Transition<T>> transitions,
-      MutableStateTree<T> tree, History<T> history) {
+  StateTree<T> applyTransitions(Iterable<Transition<T>> transitions,
+      StateTree<T> tree, History<T> history) {
     final orderedTransitions = List.of(transitions, growable: false)
       ..sort((t1, t2) => (t2.source?.order ?? 0) - (t1.source?.order ?? 0));
+    if (orderedTransitions.isEmpty) return tree;
+    final b = tree.toBuilder();
     for (var t in orderedTransitions) {
       final domain = getTransitionDomain(t, history);
       assert(domain != null);
-      tree.removeSubtree(domain!);
-      tree.addSelections(
-          [for (var targetID in t.targets) tree.find(targetID)!]);
+      b.deselect(domain!, andDescendents: true);
+      final selections = [for (var targetID in t.targets) tree.find(targetID)!];
+      b.selectAll(selections);
+      for (var s in selections.reverseSorted) {
+        selectAncestors(s, b);
+        selectDescendents(s, b);
+      }
     }
+    return b.build();
   }
 
   T? buildContext(dynamic ctx) => ctx;
@@ -86,18 +93,17 @@ class Engine<T> {
       return false;
     }
 
-    final tree = currentStep.tree.toBuilder();
     final history = currentStep.history.toBuilder();
-    final ctx = contextToBuilder(currentStep.context);
 
-    applyTransitions(transitions, tree, history);
+    final tree = applyTransitions(transitions, currentStep.tree, history);
+
+    final ctx = contextToBuilder(currentStep.context);
     runTransitionActions(transitions, ctx, callback);
-    runExitStates(tree, ctx, callback);
+    runExitStates(tree, ctx, callback); // TODO pass history builder
     runDefaultEntries(tree, ctx, callback);
     runEntryStates(tree, ctx, callback);
     final context = buildContext(ctx);
-    _currentStep =
-        ExecutionStep(tree.build(), context, transitions, history.build());
+    _currentStep = ExecutionStep(tree, context, transitions, history.build());
     return true;
   }
 
@@ -145,8 +151,7 @@ class Engine<T> {
               event: anEvent, elapsedTime: elapsedTime, context: step.context)
       ].where((t) => t != null).cast<Transition<T>>();
 
-  void runDefaultEntries(
-      MutableStateTree<T> tree, ctx, EngineCallback? callback) {
+  void runDefaultEntries(StateTree<T> tree, ctx, EngineCallback? callback) {
     for (var s in tree.defaultEntryStates) {
       s.enter(context, callback);
     }
@@ -176,6 +181,50 @@ class Engine<T> {
       [EngineCallback? callback]) {
     for (var t in transitions) {
       if (t.action != null) t.action!(context, callback);
+    }
+  }
+
+  void selectAncestors(State<T> state, StateTreeBuilder<T> b,
+      [History? history]) {
+    var probe = state;
+    var parent = state.parent;
+    while (parent != null && !b.isSelected(parent)) {
+      b.linkParent(probe, parent);
+      probe = parent;
+      parent = probe.parent;
+    }
+  }
+
+  void selectDescendents(State<T> state, StateTreeBuilder<T> b,
+      [History? history]) {
+    if (state.isAtomic) return;
+    var probe = state;
+    while (probe.isCompound) {
+      if (probe.isParallel) {
+        for (var s in probe.substates) {
+          b.select(s, type: NodeType.defaultEntry);
+          selectDescendents(s, b, history);
+        }
+        break;
+      } else {
+        final next =
+            probe.initialTransition?.targetStates ?? [probe.substates.first];
+        if (next.isEmpty) break;
+        if (next.length > 1) {
+          for (var s in next) {
+            if (b.isSelected(s)) continue;
+            b.select(s);
+            selectAncestors(s, b, history);
+            selectDescendents(s, b, history);
+          }
+          break;
+        } else {
+          final child = next.single;
+          if (b.isSelected(child)) break;
+          b.select(probe, type: NodeType.defaultEntry);
+          probe = child;
+        }
+      }
     }
   }
 }
