@@ -32,26 +32,24 @@ import 'package:statecharts/statecharts.dart';
 /// // Execute an event
 /// await engine.execute(anEvent: 'turnOn');
 /// ```
-class Engine<T> {
+class Engine<T> implements EngineCallback {
   /// The root of the tree (statechart).
   final RootState<T> root;
 
   ExecutionStep<T> _currentStep;
-
-  /// Passed to [Transition.action], [State.onEntry], and [State.onExit].
-  final EngineCallback? callback;
 
   /// Creates an engine.
   ///
   /// [root] The [RootState].
   /// [context] The data object.
   /// [step] The current step. If unspecified, creates a new, initial step.
-  /// [callback] Signaling mechanism back to the engine.
-  Engine(this.root, {T? context, ExecutionStep<T>? step, this.callback})
-      : _currentStep = ExecutionStep(StateTree(root), context);
+  Engine(this.root, {T? context, ExecutionStep<T>? step})
+      : _currentStep = step ?? ExecutionStep(StateTree(root), context);
 
   /// The data this engine is managing.
   T? get context => _currentStep.context;
+
+  EngineCallback get callback => this;
 
   /// Current execution state.
   ExecutionStep<T> get currentStep => _currentStep;

@@ -46,8 +46,8 @@ class StateInfo<T> {
 }
 
 class StateTree<T> extends StateTreeBase<T> {
-  factory StateTree(RootState<T> root) =>
-      StateTreeBuilder.initial(root).build();
+  StateTree(RootState<T> root)
+      : super(root, List.of([for (var s in root.toIterable) StateInfo(s)]));
 
   StateTree._(root, substates) : super(root, substates);
 
@@ -117,12 +117,6 @@ class StateTreeBuilder<T> extends StateTreeBase<T> {
   factory StateTreeBuilder.from(StateTree<T> tree) {
     final substates = List.of(tree.substates);
     return StateTreeBuilder._(tree.root, substates);
-  }
-
-  factory StateTreeBuilder.initial(RootState<T> root) {
-    final substates = List.of([for (var s in root.toIterable) StateInfo(s)]);
-    return StateTreeBuilder._(root, substates)
-      ..select(root, type: NodeType.entry);
   }
 
   StateTreeBuilder._(root, substates) : super(root, substates);
