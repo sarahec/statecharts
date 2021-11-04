@@ -46,34 +46,13 @@ class Engine<T> implements EngineCallback {
   Engine(this.root, {T? context, ExecutionStep<T>? step})
       : _currentStep = step ?? ExecutionStep(StateTree(root), context);
 
+  EngineCallback get callback => this;
+
   /// The data this engine is managing.
   T? get context => _currentStep.context;
 
-  EngineCallback get callback => this;
-
   /// Current execution state.
   ExecutionStep<T> get currentStep => _currentStep;
-
-  /// Updates the nodes in the tree by applying [transitions] in document order.
-  StateTree<T> applyTransitions(Iterable<Transition<T>> transitions,
-      StateTree<T> tree, History<T> history) {
-    final orderedTransitions = List.of(transitions, growable: false)
-      ..sort((t1, t2) => (t2.source?.order ?? 0) - (t1.source?.order ?? 0));
-    if (orderedTransitions.isEmpty) return tree;
-    final b = tree.toBuilder();
-    for (var t in orderedTransitions) {
-      final domain = getTransitionDomain(t, history);
-      assert(domain != null);
-      b.deselect(domain!, andDescendents: true);
-      final selections = [for (var targetID in t.targets) tree.find(targetID)!];
-      b.selectAll(selections);
-      for (var s in selections.reverseSorted) {
-        selectAncestors(s, b);
-        selectDescendents(s, b);
-      }
-    }
-    return b.build();
-  }
 
   T? buildContext(dynamic ctx) => ctx;
 
@@ -91,9 +70,13 @@ class Engine<T> implements EngineCallback {
       return false;
     }
 
+    return executeTransitions(transitions);
+  }
+
+  bool executeTransitions(Iterable<Transition<T>> transitions) {
     final history = currentStep.history.toBuilder();
 
-    final tree = applyTransitions(transitions, currentStep.tree, history);
+    final tree = updateTree(transitions, currentStep.tree, history);
 
     final ctx = contextToBuilder(currentStep.context);
     runTransitionActions(transitions, ctx, callback);
@@ -101,7 +84,8 @@ class Engine<T> implements EngineCallback {
     runDefaultEntries(tree, ctx, callback);
     runEntryStates(tree, ctx, callback);
     final context = buildContext(ctx);
-    _currentStep = ExecutionStep(tree, context, transitions, history.build());
+    _currentStep = ExecutionStep(tree, context,
+        transitions: transitions, history: history.build());
     return true;
   }
 
@@ -148,6 +132,14 @@ class Engine<T> implements EngineCallback {
           s.transitionFor(
               event: anEvent, elapsedTime: elapsedTime, context: step.context)
       ].where((t) => t != null).cast<Transition<T>>();
+
+  void initialize() {
+    final b = _currentStep.tree.toBuilder();
+    final history = _currentStep.history;
+    selectDescendents(root, b, history);
+    _currentStep =
+        ExecutionStep(b.build(), _currentStep.context, history: history);
+  }
 
   void runDefaultEntries(StateTree<T> tree, ctx, EngineCallback? callback) {
     for (var s in tree.defaultEntryStates) {
@@ -224,5 +216,26 @@ class Engine<T> implements EngineCallback {
         }
       }
     }
+  }
+
+  /// Updates the nodes in the tree by applying [transitions] in document order.
+  StateTree<T> updateTree(Iterable<Transition<T>> transitions,
+      StateTree<T> tree, History<T> history) {
+    if (transitions.isEmpty) return tree;
+    final orderedTransitions = List.of(transitions, growable: false)
+      ..sort((t1, t2) => (t2.source?.order ?? 0) - (t1.source?.order ?? 0));
+    final b = tree.toBuilder();
+    for (var t in orderedTransitions) {
+      final domain = getTransitionDomain(t, history);
+      assert(domain != null);
+      b.deselect(domain!, andDescendents: true);
+      final selections = [for (var targetID in t.targets) tree.find(targetID)!];
+      b.selectAll(selections);
+      for (var s in selections.reverseSorted) {
+        selectAncestors(s, b);
+        selectDescendents(s, b);
+      }
+    }
+    return b.build();
   }
 }
