@@ -28,19 +28,7 @@ void main() {
     expect(tree.exitStates, isEmpty);
   });
 
-  test('initial transition', () {
-    final switch2 = RootState<void>('switch',
-        substates: [
-          State<void>('off'),
-          State<void>('on'),
-        ],
-        initialTransition: Transition<void>(targets: ['on']));
-    final tree2 = StateTree(switch2);
 
-    expect(tree2.activeStates.ids, equals(['switch', 'on']));
-    expect(tree2.entryStates.ids, equals(['switch', 'on']));
-    expect(tree2.exitStates, isEmpty);
-  }, skip: 'Move to engine test');
 
   test('find', () {
     final tree = StateTree(lightswitch);
@@ -61,15 +49,6 @@ void main() {
     expect(b.build().activeStates, equals(tree.activeStates));
   });
 
-  test('switch', () {
-    final b = StateTree(lightswitch).toBuilder();
-    b.deselect(b.find('off')!);
-    b.deselect(b.find('on')!);
-    final tree = b.build();
-    expect(tree.activeStates.ids, equals(['lightswitch', 'on']));
-    expect(tree.entryStates.ids, equals(['on']));
-    expect(tree.exitStates.ids, equals(['off']));
-  }, skip: 'Move to engine test');
 
 // TODO test select(all:)
 // TODO test deselect(all:)
