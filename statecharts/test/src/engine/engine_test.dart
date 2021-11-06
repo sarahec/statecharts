@@ -20,7 +20,7 @@ import '../examples/lightswitch.dart';
 
 const skipReason = 'Complete unit testing before integration testing';
 void main() {
-  group('lightswitch', () {
+  group('engine', () {
     Engine? engine;
     Lightbulb? bulb;
 
@@ -29,34 +29,55 @@ void main() {
       engine = Engine<Lightbulb>(lightswitch, context: bulb);
     });
 
-    test('selects initial state', () {
-      expect(engine!.currentStep.tree.activeStates,
-          equals([lightswitch, stateOff]));
+    group('initialization', () {
+      test('uses default initial state', () {
+        final bulb = Lightbulb();
+        final engine = Engine<Lightbulb>(lightswitch, context: bulb);
+        expect(engine!.currentStep.tree.activeStates,
+            equals([lightswitch, stateOff]));
+      });
+
+      test('uses initial transition', () {
+        final switch2 = RootState<void>('switch',
+            substates: [
+              State<void>('off'),
+              State<void>('on'),
+            ],
+            initialTransition: Transition<void>(targets: ['on']));
+        final engine = Engine(switch2)..initialize();
+        final tree = engine.currentStep.tree;
+
+        expect(tree.activeStates.ids, equals(['switch', 'on']));
+        expect(tree.entryStates.ids, equals(['switch', 'on']));
+        expect(tree.exitStates, isEmpty);
+      });
     });
 
-    test("executes 'on' transition", () {
-      engine!.execute(anEvent: turnOn);
-      expect(engine!.currentStep.tree.activeStates,
-          equals([lightswitch, stateOn]));
-    });
-
-    test('calls onEntry', () {
-      expect(bulb?.isOn, isFalse);
-      engine!.execute(anEvent: turnOn);
-      expect(bulb?.isOn, isTrue);
-      engine!.execute(anEvent: turnOff);
-      expect(bulb?.isOn, isFalse);
-    });
-
-    test('tests entry condition in transition', () {
-      final limit = 10;
-      for (var i = 0; i < limit; i++) {
+    group('execution', () {
+      test("executes 'on' transition", () {
         engine!.execute(anEvent: turnOn);
+        expect(engine!.currentStep.tree.activeStates,
+            equals([lightswitch, stateOn]));
+      });
+
+      test('calls onEntry', () {
+        expect(bulb?.isOn, isFalse);
+        engine!.execute(anEvent: turnOn);
+        expect(bulb?.isOn, isTrue);
         engine!.execute(anEvent: turnOff);
-      }
-      expect(engine!.context?.cycleCount, equals(limit));
-    });
-  }, skip: skipReason);
+        expect(bulb?.isOn, isFalse);
+      });
+
+      test('tests entry condition in transition', () {
+        final limit = 10;
+        for (var i = 0; i < limit; i++) {
+          engine!.execute(anEvent: turnOn);
+          engine!.execute(anEvent: turnOff);
+        }
+        expect(engine!.context?.cycleCount, equals(limit));
+      });
+    }, skip: skipReason);
+  });
 
   group('history', () {
     test('default states', () {
