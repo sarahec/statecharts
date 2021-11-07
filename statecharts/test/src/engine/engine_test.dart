@@ -21,19 +21,10 @@ import '../examples/lightswitch.dart';
 const skipReason = 'Complete unit testing before integration testing';
 void main() {
   group('engine', () {
-    Engine? engine;
-    Lightbulb? bulb;
-
-    setUp(() {
-      bulb = Lightbulb();
-      engine = Engine<Lightbulb>(lightswitch, context: bulb)..initialize();
-    });
-
     group('initialization', () {
       test('uses default initial state', () {
         final bulb = Lightbulb();
-        final engine = Engine<Lightbulb>(lightswitch, context: bulb)
-          ..initialize();
+        final engine = Engine<Lightbulb>(lightswitch, context: bulb);
         final tree = engine.currentStep.tree;
         expect(tree.activeStates.ids, equals(['lightswitch', 'off']));
         expect(tree.entryStates.ids, equals(['lightswitch', 'off']),
@@ -48,7 +39,7 @@ void main() {
               State<void>('on'),
             ],
             initialTransition: Transition<void>(targets: ['on']));
-        final engine = Engine(switch2)..initialize();
+        final engine = Engine(switch2);
         final tree = engine.currentStep.tree;
 
         expect(tree.activeStates.ids, equals(['switch', 'on']));
@@ -58,6 +49,14 @@ void main() {
     });
 
     group('execution', () {
+      Engine? engine;
+      Lightbulb? bulb;
+
+      setUp(() {
+        bulb = Lightbulb();
+        engine = Engine<Lightbulb>(lightswitch, context: bulb);
+      });
+
       test("executes 'on' transition", () {
         engine!.execute(anEvent: turnOn);
         final tree = engine!.currentStep.tree;
@@ -175,7 +174,7 @@ void main() {
       final engine = Engine<void>(basicComposite);
       expect(engine.currentStep.tree.activeStates.ids,
           containsAll(['D', 'E', 'G']));
-      expect(engine.currentStep.tree.activeStates.first.id, equals('E'));
+      expect(engine.currentStep.tree.activeStates.first.id, equals('D'));
     });
 
     test('timed transition', () {
@@ -197,5 +196,5 @@ void main() {
       expect(engine.currentStep.tree.activeStates.ids, containsAll(['D', 'F']),
           reason: 'after timed transition');
     });
-  }, skip: skipReason);
+  });
 }
