@@ -44,7 +44,9 @@ class Engine<T> implements EngineCallback {
   /// [context] The data object.
   /// [step] The current step. If unspecified, creates a new, initial step.
   Engine(this.root, {T? context, ExecutionStep<T>? step})
-      : _currentStep = step ?? ExecutionStep(StateTree(root), context);
+      : _currentStep = step ?? ExecutionStep(StateTree(root), context) {
+    if (step == null) initialize();
+  }
 
   EngineCallback get callback => this;
 
