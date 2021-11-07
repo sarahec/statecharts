@@ -13,6 +13,9 @@ tasks:
 image:
   file: .gitpod.Dockerfile
 
+ports:
+  port: 8081
+
 github:
   prebuilds:
     # enable for the default branch (defaults to true)
