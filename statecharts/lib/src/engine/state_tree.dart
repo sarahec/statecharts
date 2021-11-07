@@ -17,32 +17,25 @@ import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 import 'package:statecharts/statecharts.dart';
 
-enum NodeType { none, selected, entry, ancestorEntry, defaultEntry, exit }
-
 typedef HistoryResolver = Iterable<State<T>> Function<T>(HistoryState<T> state);
+
+enum NodeType { free, selected, entry, ancestorEntry, defaultEntry, exit }
 
 class StateInfo<T> {
   final State<T> state;
   final NodeType type;
   final Iterable<State<T>> children;
 
-  StateInfo(this.state, [this.type = NodeType.none, this.children = const []]);
+  StateInfo(this.state, [this.type = NodeType.free, this.children = const []]);
 
+  bool get isDefaultEntry => type == NodeType.defaultEntry;
   bool get isEntry =>
       type == NodeType.ancestorEntry ||
       type == NodeType.entry ||
       type == NodeType.defaultEntry;
   bool get isExit => type == NodeType.exit;
-  bool get isFree => type == NodeType.none || type == NodeType.exit;
-  bool get isSelected => type != NodeType.none && type != NodeType.exit;
-
-  /// Duplicates this info, making it ready for the next tree generation.
-  ///
-  /// In particular, [NodeType.exit] nodes become [NodeType.none] and all other
-  /// selected or entry nodes become [NodeType.selected].
-  StateInfo<T> makeNext() => isFree
-      ? StateInfo(state)
-      : StateInfo(state, NodeType.selected, List.of(children));
+  bool get isFree => type == NodeType.free || type == NodeType.exit;
+  bool get isSelected => type != NodeType.free && type != NodeType.exit;
 }
 
 class StateTree<T> extends StateTreeBase<T> {
@@ -50,22 +43,6 @@ class StateTree<T> extends StateTreeBase<T> {
       : super(root, List.of([for (var s in root.toIterable) StateInfo(s)]));
 
   StateTree._(root, substates) : super(root, substates);
-
-  Iterable<State<T>> get activeStates =>
-      substates.where((s) => isSelected(s.state)).map((s) => s.state);
-
-  Iterable<State<T>> get defaultEntryStates => substates
-      .where((s) => s.type == NodeType.defaultEntry)
-      .map((s) => s.state);
-
-  Iterable<State<T>> get entryStates => substates
-      .where((s) => s.type == NodeType.defaultEntry || s.type == NodeType.entry)
-      .map((s) => s.state);
-
-  Iterable<State<T>> get exitStates =>
-      substates.where((s) => s.type == NodeType.exit).map((s) => s.state);
-
-  bool get isEmpty => substates.every((info) => info.type == NodeType.none);
 
   StateTreeBuilder<T> toBuilder() => StateTreeBuilder.from(this);
 }
@@ -76,12 +53,19 @@ class StateTreeBase<T> {
 
   StateTreeBase(this.root, this.substates);
 
-  State<T>? find(String id) =>
-      substates.firstWhereOrNull((info) => info.state.id == id)?.state;
+  Iterable<State<T>> get activeStates =>
+      substates.where((s) => isSelected(s.state)).map((s) => s.state);
 
-  StateInfo<T> info(State<T> state) => substates[state.order];
+  Iterable<State<T>> get defaultEntryStates =>
+      substates.where((s) => s.isDefaultEntry).map((s) => s.state);
 
-  bool isSelected(State<T> s) => substates[s.order].isSelected;
+  Iterable<State<T>> get entryStates =>
+      substates.where((s) => s.isEntry).map((s) => s.state);
+
+  Iterable<State<T>> get exitStates =>
+      substates.where((s) => s.isExit).map((s) => s.state);
+
+  bool get isEmpty => substates.every((info) => info.type == NodeType.free);
 
   Iterable<State<T>> ancestors(State<T> node, {State<T>? upTo}) sync* {
     var probe = node;
@@ -111,6 +95,13 @@ class StateTreeBase<T> {
       }
     }
   }
+
+  State<T>? find(String id) =>
+      substates.firstWhereOrNull((info) => info.state.id == id)?.state;
+
+  StateInfo<T> info(State<T> state) => substates[state.order];
+
+  bool isSelected(State<T> s) => substates[s.order].isSelected;
 }
 
 class StateTreeBuilder<T> extends StateTreeBase<T> {
@@ -125,10 +116,13 @@ class StateTreeBuilder<T> extends StateTreeBase<T> {
   StateTree<T> build() => StateTree._(root, UnmodifiableListView(substates));
 
   /// Removes the specified node (and its descendents) from the tree.
-  void deselect(State<T> state, {bool andDescendents = false}) {
-    if (info(state).isFree) return;
-    final queue = [state];
-    if (andDescendents) queue.addAll(descendents(state));
+  void deselect(State<T> state) {
+    if (!info(state).isFree) free(state);
+    deselectDescendents(state);
+  }
+
+  void deselectDescendents(State<T> state) {
+    final queue = descendents(state).reverseSorted;
     for (var s in queue) {
       free(s);
     }
@@ -142,8 +136,37 @@ class StateTreeBuilder<T> extends StateTreeBase<T> {
     updateInfo(state, type: NodeType.exit, children: const []);
   }
 
-  void select(State<T> state, {type = NodeType.selected}) {
-    if (info(state).isSelected) return;
+  void linkParent(State<T> state, State<T> parent) {
+    final children = parent.isParallel ? parent.substates : [state];
+    if (info(parent).isFree) {
+      updateInfo(parent, type: NodeType.ancestorEntry, children: children);
+    } else {
+      updateInfo(parent, children: children);
+    }
+  }
+
+  /// Cleans up entry and exit states to only `selected` or `free`.
+  ///
+  /// The engine shoud call this after making a copy of the previous step's
+  /// tree (using [toBuilder]) as the builder will contain the old entry and
+  /// exit states.
+  ///
+  /// ```
+  /// final b = tree.toBuilder()..normalizeSelections();
+  /// ```
+  void normalizeSelections() {
+    for (var si in substates) {
+      if (si.isEntry) {
+        updateInfo(si.state, type: NodeType.selected);
+      } else if (si.isExit) {
+        updateInfo(si.state, type: NodeType.free);
+      }
+    }
+  }
+
+  void select(State<T> state, {type = NodeType.entry}) {
+    final _info = info(state);
+    if (_info.isSelected) return;
     updateInfo(state, type: type);
     if (state.parent != null) linkParent(state, state.parent!);
   }
@@ -152,11 +175,6 @@ class StateTreeBuilder<T> extends StateTreeBase<T> {
     for (var s in states) {
       select(s);
     }
-  }
-
-  void linkParent(State<T> state, State<T> parent) {
-    final children = parent.isParallel ? parent.substates : [state];
-    updateInfo(parent, type: NodeType.ancestorEntry, children: children);
   }
 
   void unlinkParent(State<T> state) {
@@ -168,7 +186,9 @@ class StateTreeBuilder<T> extends StateTreeBase<T> {
   @visibleForOverriding
   void updateInfo(State<T> probe,
       {NodeType? type, Iterable<State<T>>? children}) {
+    assert(type != null || children != null);
     final info = substates[probe.order];
+
     substates[probe.order] =
         StateInfo(probe, type ?? info.type, children ?? info.children);
   }
