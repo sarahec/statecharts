@@ -26,15 +26,19 @@ void main() {
 
     setUp(() {
       bulb = Lightbulb();
-      engine = Engine<Lightbulb>(lightswitch, context: bulb);
+      engine = Engine<Lightbulb>(lightswitch, context: bulb)..initialize();
     });
 
     group('initialization', () {
       test('uses default initial state', () {
         final bulb = Lightbulb();
-        final engine = Engine<Lightbulb>(lightswitch, context: bulb);
-        expect(engine!.currentStep.tree.activeStates,
-            equals([lightswitch, stateOff]));
+        final engine = Engine<Lightbulb>(lightswitch, context: bulb)
+          ..initialize();
+        final tree = engine.currentStep.tree;
+        expect(tree.activeStates.ids, equals(['lightswitch', 'off']));
+        expect(tree.entryStates.ids, equals(['lightswitch', 'off']),
+            reason: 'all initial states are entry states');
+        expect(tree.exitStates, isEmpty, reason: 'no exit states');
       });
 
       test('uses initial transition', () {
@@ -56,8 +60,13 @@ void main() {
     group('execution', () {
       test("executes 'on' transition", () {
         engine!.execute(anEvent: turnOn);
-        expect(engine!.currentStep.tree.activeStates,
-            equals([lightswitch, stateOn]));
+        final tree = engine!.currentStep.tree;
+        expect(tree.activeStates.ids, equals(['lightswitch', 'on']),
+            reason: 'off -> on');
+        expect(tree.entryStates.ids, equals(['on']),
+            reason: 'entering on state');
+        expect(tree.exitStates.ids, equals(['off']),
+            reason: 'exiting off state');
       });
 
       test('calls onEntry', () {
@@ -76,7 +85,7 @@ void main() {
         }
         expect(engine!.context?.cycleCount, equals(limit));
       });
-    }, skip: skipReason);
+    });
   });
 
   group('history', () {
