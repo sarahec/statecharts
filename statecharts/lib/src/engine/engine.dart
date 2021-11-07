@@ -136,6 +136,7 @@ class Engine<T> implements EngineCallback {
   void initialize() {
     final b = _currentStep.tree.toBuilder();
     final history = _currentStep.history;
+    b.select(root, type: NodeType.entry); // force the root's type
     selectDescendents(root, b, history);
     _currentStep =
         ExecutionStep(b.build(), _currentStep.context, history: history);
@@ -178,7 +179,7 @@ class Engine<T> implements EngineCallback {
       [History? history]) {
     var probe = state;
     var parent = state.parent;
-    while (parent != null && !b.isSelected(parent)) {
+    while (parent != null) {
       b.linkParent(probe, parent);
       probe = parent;
       parent = probe.parent;
@@ -211,7 +212,7 @@ class Engine<T> implements EngineCallback {
         } else {
           final child = next.single;
           if (b.isSelected(child)) break;
-          b.select(probe, type: NodeType.defaultEntry);
+          b.select(child, type: NodeType.defaultEntry);
           probe = child;
         }
       }
@@ -224,11 +225,11 @@ class Engine<T> implements EngineCallback {
     if (transitions.isEmpty) return tree;
     final orderedTransitions = List.of(transitions, growable: false)
       ..sort((t1, t2) => (t2.source?.order ?? 0) - (t1.source?.order ?? 0));
-    final b = tree.toBuilder();
+    final b = tree.toBuilder()..normalizeSelections();
     for (var t in orderedTransitions) {
       final domain = getTransitionDomain(t, history);
       assert(domain != null);
-      b.deselect(domain!, andDescendents: true);
+      b.deselectDescendents(domain!);
       final selections = [for (var targetID in t.targets) tree.find(targetID)!];
       b.selectAll(selections);
       for (var s in selections.reverseSorted) {

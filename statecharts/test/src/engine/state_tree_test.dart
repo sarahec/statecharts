@@ -20,15 +20,13 @@ import '../examples/lightswitch.dart';
 // import '../examples/history.dart';
 
 void main() {
-  test('initial states (default)', () {
+  test('initial states', () {
     final tree = StateTree(lightswitch);
 
-    expect(tree.activeStates.ids,isEmpty);
+    expect(tree.activeStates.ids, isEmpty);
     expect(tree.entryStates.ids, isEmpty);
     expect(tree.exitStates, isEmpty);
   });
-
-
 
   test('find', () {
     final tree = StateTree(lightswitch);
@@ -48,7 +46,6 @@ void main() {
     // rebuild without changes
     expect(b.build().activeStates, equals(tree.activeStates));
   });
-
 
 // TODO test select(all:)
 // TODO test deselect(all:)
