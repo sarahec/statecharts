@@ -98,10 +98,9 @@ class Engine<T> implements EngineCallback {
     for (var s in transition.targetStates) {
       if (s is HistoryState<T>) {
         if (history.contains(s)) {
-          targets = targets.union(Set.of(history[s]!));
+          targets.addAll(Set.of(history[s]!));
         } else {
-          targets =
-              targets.union(getEffectiveTargetStates(s.transition, history));
+          targets.addAll(getEffectiveTargetStates(s.transition, history));
         }
       } else {
         targets.add(s);
@@ -228,6 +227,7 @@ class Engine<T> implements EngineCallback {
     final orderedTransitions = List.of(transitions, growable: false)
       ..sort((t1, t2) => (t2.source?.order ?? 0) - (t1.source?.order ?? 0));
     final b = tree.toBuilder()..normalizeSelections();
+    // TODO pre-process history transitions
     for (var t in orderedTransitions) {
       final domain = getTransitionDomain(t, history);
       assert(domain != null);
