@@ -75,6 +75,7 @@ export 'src/engine/history.dart';
 export 'src/engine/sort_extensions.dart';
 export 'src/engine/state_set.dart';
 export 'src/engine/state_tree.dart';
+export 'src/engine/transition_resolver.dart';
 export 'src/statechart/state.dart';
 export 'src/statechart/history_state.dart';
 export 'src/statechart/transition.dart';
