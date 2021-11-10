@@ -26,11 +26,10 @@ class TransitionResolver<T> {
       : root = step.tree.root,
         history = step.history {
     final tree = step.tree;
-    final size = tree.root.toIterable.length;
-    selections = StateSet(size: size)..addAll(tree.activeStates);
-    entrySet = StateSet(size: size);
-    exitSet = StateSet(size: size);
-    defaultEntrySet = StateSet(size: size);
+    selections = StateSet(tree)..addAll(tree.activeStates);
+    entrySet = StateSet(tree);
+    exitSet = StateSet(tree);
+    defaultEntrySet = StateSet(tree);
   }
 
   /// All targets of 'transition' after replacing any history states.
