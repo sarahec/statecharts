@@ -67,6 +67,9 @@ class StateTreeBase<T> {
 
   bool get isEmpty => substates.every((info) => info.type == NodeType.free);
 
+  /// Number of nodes in the tree
+  int get size => substates.length;
+
   Iterable<State<T>> ancestors(State<T> node, {State<T>? upTo}) sync* {
     var probe = node;
     while (probe.parent != upTo) {
