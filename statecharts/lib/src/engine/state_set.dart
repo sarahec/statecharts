@@ -18,6 +18,8 @@ import 'dart:collection';
 import 'package:meta/meta.dart';
 import 'package:statecharts/statecharts.dart';
 
+// ignore_for_file: avoid_renaming_method_parameters
+
 /// Fast ordered set implementation using [State.order].
 ///
 /// Since we know that the states in a tree each have a unique `order`
