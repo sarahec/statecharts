@@ -51,6 +51,9 @@ import 'package:statecharts/statecharts.dart';
 class RootState<T> extends State<T> {
   late final Map<String, State<T>> stateMap;
 
+  /// The number of nodes in this tree
+  late final int size;
+
   /// Create the root node.
   RootState(id,
       {required Iterable<State<T>> substates,
@@ -76,6 +79,7 @@ class RootState<T> extends State<T> {
     parent = null;
     resolveTransitions(stateMap);
     finishTree();
+    size = toIterable.length;
   }
 
   // Resolve the transition futures into transitions pointing to
