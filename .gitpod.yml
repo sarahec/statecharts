@@ -13,7 +13,10 @@ image:
   file: .gitpod.Dockerfile
 
 ports:
+    # Dart observatory
   - port: 8081
+    # Dart VM service
+  - port: 8181
 
 github:
   prebuilds:
