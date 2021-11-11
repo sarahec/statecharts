@@ -159,6 +159,9 @@ class State<T> {
   /// Are any of the immediate substates a history state?
   bool get containsHistoryState => substates.any((s) => s is HistoryState<T>);
 
+  Iterable<State<T>> get initialStates =>
+      initialTransition?.targetStates ?? [substates.first];
+
   /// True if this has no substates (i.e. is a leaf node)
   bool get isAtomic => substates.isEmpty;
 
