@@ -34,12 +34,12 @@ class StateSet<T> extends SetBase<State<T>> {
 
   StateSet._(this.size, this.storage);
 
-  @Deprecated('Use StateSet(<StateTree<T>> tree) instead')
+  @Deprecated('Use StateSet(<RootState<T>> root) instead')
   factory StateSet.withSize(int size) =>
       StateSet._(size, List.filled(size, null));
 
-  factory StateSet(StateTree<T> tree) =>
-      StateSet._(tree.size, List.filled(tree.size, null));
+  factory StateSet(RootState<T> root) =>
+      StateSet._(root.size, List.filled(root.size, null));
 
   @override
   bool add(State<T> state) {
