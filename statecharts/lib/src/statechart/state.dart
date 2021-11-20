@@ -159,6 +159,7 @@ class State<T> {
   /// Are any of the immediate substates a history state?
   bool get containsHistoryState => substates.any((s) => s is HistoryState<T>);
 
+  /// The states referenced by [initialTransition].
   Iterable<State<T>> get initialStates =>
       initialTransition?.targetStates ?? [substates.first];
 
@@ -183,38 +184,14 @@ class State<T> {
     yield* _toIterable(this);
   }
 
-  /// Determines all the active states in this subtree.
-  ///
-  /// This answers the question "given a set of active states, which other
-  /// descendants must also be active? It returns a complete set of active
-  /// states in this subtree, including the [selections] used to seed the
-  /// search.
-  ///
-  /// [selections] contains the prior known active states
-  Iterable<State<T>> activeDescendents(Set<State<T>> selections) sync* {
-    Iterable<State<T>> _active(State<T> node) sync* {
-      yield node;
-      if (node.isAtomic) return;
-      final child =
-          node.substates.firstWhereOrNull((c) => selections.contains(c)) ??
-              node.substates.first;
-      yield* _active(child);
-    }
-
-    yield* _active(this);
-  }
-
   /// Finds the ancestors of a state
   ///
   /// If [upTo] is null, returns the set of all ancestors (parents)
   /// from this up to (and including) the top of tree (`parent == null`).
   /// If [upTo] is not null, return all ancestors up to but *not*
   /// including [upTo].
-  ///
-  /// Special case: the ancestor of the root state is itself (returned once).
   Iterable<State<T>> ancestors({State<T>? upTo}) sync* {
     if (parent == null) {
-      yield this;
       return;
     }
     if (upTo != null && upTo == this) return;
