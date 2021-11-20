@@ -43,6 +43,7 @@ class StateSet<T> extends SetBase<State<T>> {
 
   @override
   bool add(State<T> state) {
+    assert(state.order >= 0);
     if (state.order >= size) {
       throw ArgumentError.value(
           state.order, 'state', 'Size $size is too small to hold this value');
@@ -63,7 +64,7 @@ class StateSet<T> extends SetBase<State<T>> {
   Iterator<State<T>> get iterator => toList().iterator;
 
   @override
-  int get length => size;
+  int get length => storage.whereType<State<T>>().length;
 
   @override
   State<T>? lookup(Object? probe) => contains(probe) ? probe as State<T> : null;
@@ -81,7 +82,11 @@ class StateSet<T> extends SetBase<State<T>> {
   Set<State<T>> toSet() => StateSet._(size, List.of(storage, growable: false));
 
   @override
-  List<State<T>> toList({bool growable = false}) =>
-      List.of(storage.where((s) => s != null) as Iterable<State<T>>,
-          growable: growable);
+  List<State<T>> toList({bool growable = false}) {
+    final result = storage.isEmpty
+        ? List<State<T>>.empty()
+        : UnmodifiableListView(
+            List<State<T>>.of(storage.whereType<State<T>>(), growable: false));
+    return result;
+  }
 }
