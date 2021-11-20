@@ -77,7 +77,7 @@ class RootState<T> extends State<T> {
     };
     order = 0;
     parent = null;
-    resolveTransitions(stateMap);
+    _resolveTransitions(stateMap);
     finishTree();
     size = toIterable.length;
   }
@@ -95,7 +95,7 @@ class RootState<T> extends State<T> {
       for (var s in node.substates) {
         s.parent = node;
         s.order = _order++;
-        s.resolveTransitions(stateMap);
+        s._resolveTransitions(stateMap);
         finishSubstates(s);
       }
     }
@@ -190,8 +190,11 @@ class State<T> {
   /// from this up to (and including) the top of tree (`parent == null`).
   /// If [upTo] is not null, return all ancestors up to but *not*
   /// including [upTo].
+  ///
+  /// Special case: the sole ancestor of root is [root]
   Iterable<State<T>> ancestors({State<T>? upTo}) sync* {
     if (parent == null) {
+      yield this;
       return;
     }
     if (upTo != null && upTo == this) return;
@@ -204,7 +207,7 @@ class State<T> {
   }
 
   /// Whether this state descends from another.
-  bool descendsFrom(State<T> other) => other.ancestors().contains(this);
+  bool descendsFrom(State<T> other) => ancestors().contains(other);
 
   /// Calls [onEntry]  with the given context (if they are both non-null).
   void enter(T? context, [EngineCallback? callback]) {
@@ -216,8 +219,9 @@ class State<T> {
     if (onExit != null && context != null) onExit!(context, callback);
   }
 
-  /// Adds target states and source reference to all transitions.
-  void resolveTransitions(Map<String, State<T>> stateMap) {
+  /// Used during root state resolution to add target states and source
+  /// reference to all transitions.
+  void _resolveTransitions(Map<String, State<T>> stateMap) {
     initialTransition?.resolveStates(this, stateMap);
     for (var t in transitions) {
       t.resolveStates(this, stateMap);
@@ -248,7 +252,7 @@ class State<T> {
 
   /// The lowest node in the tree that encompasses all nodes.
   static State<T> commonSubtree<T>(Iterable<State<T>> nodes) => (nodes
-      .map((s) => Set.of(s.ancestors()))
+      .map((s) => {s, ...s.ancestors()})
       .reduce((a, b) => a.intersection(b))
       .reduce((a, b) => a.order > b.order ? a : b));
 }
