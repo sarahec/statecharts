@@ -1,9 +1,13 @@
+import 'package:meta/meta.dart';
 import 'package:statecharts/statecharts.dart';
 
-extension Sort<T> on Iterable<State<T>> {
+extension ID<T> on Iterable<State<T>> {
   /// The [id] values of all states sorted by [order]. Used for testing.
-  Iterable<String> get ids => [for (var s in sorted) s.id ?? '_'];
+  @visibleForTesting
+  Iterable<String> get ids => [for (var s in this) s.id ?? '_'];
+}
 
+extension Sort<T> on Iterable<State<T>> {
   Iterable<State<T>> get sorted =>
       (toList()..sort((a, b) => a.order.compareTo(b.order)));
 
