@@ -15,7 +15,7 @@
 
 import 'package:statecharts/statecharts.dart';
 
-enum HistoryDepth { SHALLOW, DEEP }
+enum HistoryDepth { shallow, deep }
 
 /// Signals the engine to return to a previous configuration of active states.
 ///
@@ -25,8 +25,8 @@ class HistoryState<T> implements State<T> {
   @override
   final String? id;
 
-  /// Whether to replace with state [id] ([HistoryDepth.SHALLOW]) or
-  /// with the state and all its descendents ([HistoryDepth.DEEP]).
+  /// Whether to replace with state [id] ([HistoryDepth.shallow]) or
+  /// with the state and all its descendents ([HistoryDepth.deep]).
   final HistoryDepth type;
 
   /// Specifies the default active states if none found in the history.
@@ -41,7 +41,7 @@ class HistoryState<T> implements State<T> {
   late final State<T>? parent;
 
   HistoryState(this.id,
-      {required this.transition, this.type = HistoryDepth.DEEP});
+      {required this.transition, this.type = HistoryDepth.deep});
 
   /// Not applicable
   @override
