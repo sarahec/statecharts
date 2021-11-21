@@ -77,7 +77,7 @@ class RootState<T> extends State<T> {
     };
     order = 0;
     parent = null;
-    _resolveTransitions(stateMap);
+    resolveTransitions(stateMap);
     finishTree();
     size = toIterable.length;
   }
@@ -95,7 +95,7 @@ class RootState<T> extends State<T> {
       for (var s in node.substates) {
         s.parent = node;
         s.order = _order++;
-        s._resolveTransitions(stateMap);
+        s.resolveTransitions(stateMap);
         finishSubstates(s);
       }
     }
@@ -221,7 +221,8 @@ class State<T> {
 
   /// Used during root state resolution to add target states and source
   /// reference to all transitions.
-  void _resolveTransitions(Map<String, State<T>> stateMap) {
+  @visibleForOverriding
+  void resolveTransitions(Map<String, State<T>> stateMap) {
     initialTransition?.resolveStates(this, stateMap);
     for (var t in transitions) {
       t.resolveStates(this, stateMap);
