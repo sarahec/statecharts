@@ -34,7 +34,7 @@ class History<T> {
     // element may have both "deep" and "shallow" <history> children.
     final result = <State<T>>{};
     for (var hs in historyChildren) {
-      if (hs.type == HistoryDepth.SHALLOW) {
+      if (hs.type == HistoryDepth.shallow) {
         result.addAll(activeChildren);
       } else {
         final deepChildren = [
