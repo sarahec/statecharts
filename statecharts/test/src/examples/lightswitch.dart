@@ -41,21 +41,23 @@ final lightswitch = RootState<Lightbulb>('lightswitch', substates: [
   stateOn,
 ]);
 
-final countedLightswitch = RootState<Lightbulb>('lightswitch2', substates: [
-  State<Lightbulb>('off',
-      transitions: [
-        Transition(
-            targets: ['on'],
-            event: turnOn,
-            condition: (b) => b.cycleCount < 10),
-      ],
-      onEntry: (b, _) => b!.isOn = false),
-  State<Lightbulb>('on',
-      transitions: [
-        Transition(targets: ['off'], event: turnOff),
-      ],
-      onEntry: (b, _) => b!.isOn = true,
-      onExit: (b, _) {
-        b!.cycleCount += 1;
-      }),
-]);
+final countedLightswitch = RootState<Lightbulb>('lightswitch2',
+    substates: [
+      State<Lightbulb>('off',
+          transitions: [
+            Transition(
+                targets: ['on'],
+                event: turnOn,
+                condition: (b) => b.cycleCount < 10),
+          ],
+          onEntry: (b, _) => b!.isOn = false),
+      State<Lightbulb>('on',
+          transitions: [
+            Transition(targets: ['off'], event: turnOff),
+          ],
+          onEntry: (b, _) => b!.isOn = true,
+          onExit: (b, _) {
+            b!.cycleCount += 1;
+          }),
+    ],
+    initialTransition: Transition(targets: ['off']));
