@@ -37,7 +37,14 @@ void main() {
     expect(set.ids, equals(['on']));
   });
 
-  test('sort', () {
+  test('toSet', () {
+    final set = StateSet(lightswitch)..add(onState);
+    final set2 = set.toSet();
+    expect(set, equals(set2));
+    expect(set, isNot(same(set2)));
+  });
+
+  test('sorting', () {
     assert(onState.order > offState.order);
     final set = StateSet(lightswitch)..add(onState);
     expect(set.ids, equals(['on']));
@@ -46,10 +53,13 @@ void main() {
     expect(set.toList(), equals([offState, onState]));
   });
 
-  test('toSet', () {
+  group('extensions', () {
     final set = StateSet(lightswitch)..add(onState);
-    final set2 = set.toSet();
-    expect(set, equals(set2));
-    expect(set, isNot(same(set2)));
+
+    test('ancestors',
+        () => expect(set.ancestors(onState), equals([lightswitch])));
+
+    test('descendents',
+        () => expect(set.descendents(lightswitch), equals([onState])));
   });
 }
