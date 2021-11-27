@@ -13,15 +13,16 @@ void main() {
     expect(stateSet.toList(), isEmpty);
   });
 
-  test('add element', () {
-    final set = StateSet(lightswitch)..add(onState);
+  test('add', () {
+    final set = StateSet(lightswitch);
+    expect(set.add(onState), isTrue); // true == added
     expect(set.length, equals(1));
     expect(set.contains(onState), isTrue);
     expect(set.contains(offState), isFalse);
     expect(set.contains(lightswitch), isFalse);
   });
 
-  test('remove element', () {
+  test('remove', () {
     final set = StateSet(lightswitch)..addAll([onState, offState]);
     expect(set.length, equals(2));
     set.remove(onState);
@@ -29,14 +30,14 @@ void main() {
     expect(set.length, equals(1));
   });
 
-  test('ignores duplicate additions', () {
+  test('add duplicate', () {
     final set = StateSet(lightswitch)..add(onState);
     expect(set.length, equals(1));
-    set.add(onState);
+    expect(set.add(onState), isFalse); // false == duplicate, not added
     expect(set.ids, equals(['on']));
   });
 
-  test('sorts elements', () {
+  test('sort', () {
     assert(onState.order > offState.order);
     final set = StateSet(lightswitch)..add(onState);
     expect(set.ids, equals(['on']));
@@ -45,7 +46,7 @@ void main() {
     expect(set.toList(), equals([offState, onState]));
   });
 
-  test('copies set', () {
+  test('toSet', () {
     final set = StateSet(lightswitch)..add(onState);
     final set2 = set.toSet();
     expect(set, equals(set2));

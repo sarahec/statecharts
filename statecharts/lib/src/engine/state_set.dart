@@ -48,9 +48,9 @@ class StateSet<T> extends SetBase<State<T>> {
       throw ArgumentError.value(
           state.order, 'state', 'Size $size is too small to hold this value');
     }
-    final found = storage[state.order] != null;
-    if (!found) storage[state.order] = state;
-    return found;
+    final isNew = storage[state.order] == null;
+    if (isNew) storage[state.order] = state;
+    return isNew;
   }
 
   @override
