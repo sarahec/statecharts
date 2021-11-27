@@ -116,7 +116,7 @@ class Engine<T> implements EngineCallback {
     if (tstates.isEmpty) {
       return null;
     }
-    if (t.type == TransitionType.Internal &&
+    if (t.type == TransitionType.internalTransition &&
         t.source!.isCompound &&
         tstates.every((s) => s.descendsFrom(t.source!))) {
       return t.source;
