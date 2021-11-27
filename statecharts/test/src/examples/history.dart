@@ -30,7 +30,7 @@ final history_statechart = RootState<void>(
       substates: [
         // remember the exit state of A. If it hasn't been exited yet, use C as the default.
         HistoryState('A_AGAIN',
-            transition: Transition(targets: ['C']), type: HistoryDepth.DEEP),
+            transition: Transition(targets: ['C']), type: HistoryDepth.deep),
         State('B'),
         State('C'),
         State('D', substates: [State('D1'), State('D2')]),
@@ -52,7 +52,7 @@ final history_statechart = RootState<void>(
           substates: [State('ALT2a'), State('ALT2b')],
         ),
         HistoryState('ALT_AGAIN',
-            transition: Transition(targets: ['C']), type: HistoryDepth.SHALLOW),
+            transition: Transition(targets: ['C']), type: HistoryDepth.shallow),
       ],
       transitions: [
         Transition(event: RESTORE_A, targets: ['A_AGAIN']),
