@@ -89,4 +89,21 @@ class StateSet<T> extends SetBase<State<T>> {
             List<State<T>>.of(storage.whereType<State<T>>(), growable: false));
     return result;
   }
+
+  /// All nodes from `state` to the root, not including state.
+  Iterable<State<T>> ancestors(State<T> state) sync* {
+    var probe = state.parent;
+    while (probe != null) {
+      yield probe;
+      probe = probe.parent;
+    }
+  }
+
+  /// All active children of `state`, and their active children, not including state.
+  Iterable<State<T>> descendents(State<T> state) sync* {
+    for (var s in storage.where((s) => s?.parent == state)) {
+      yield s!;
+      yield* descendents(s);
+    }
+  }
 }
