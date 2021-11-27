@@ -33,8 +33,6 @@ void main() {
   });
 
   group('event transition + condition', () {
-    final cond = State<int>('cond');
-
     final conditionalTransition = EventTransition<int>(
         targets: ['cond'], event: 'onA', condition: (int c) => c == 0);
 
