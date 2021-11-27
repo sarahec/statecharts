@@ -17,6 +17,8 @@ import 'package:test/test.dart';
 
 import '../examples/history.dart';
 
+const IntegrationTest = 'Integration test';
+
 void main() {
   test('initial state', () {
     final engine = Engine<void>(history_statechart);
@@ -31,14 +33,14 @@ void main() {
     engine.execute(anEvent: RESTORE_A);
     expect(
         engine.currentStep.tree.activeStates.ids, equals(['root', 'A', 'C']));
-  });
+  }, skip: IntegrationTest);
 
   test('exit parent', () {
     final engine = Engine<void>(history_statechart); // [root, A, B]
     engine.execute(anEvent: EXIT);
     expect(engine.currentStep.tree.activeStates.ids,
         containsAllInOrder(['root', 'ALT']));
-  });
+  }, skip: IntegrationTest);
 
   group('restores', () {
     test('leaf state', () {
@@ -79,5 +81,5 @@ void main() {
       // expect(engine.currentStep.activeStates.ids,
       //     containsAll(['root', 'A', 'D', 'D2']));
     });
-  });
+  }, skip: IntegrationTest);
 }
