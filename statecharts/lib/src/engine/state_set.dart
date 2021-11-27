@@ -90,16 +90,11 @@ class StateSet<T> extends SetBase<State<T>> {
     return result;
   }
 
-  /// All nodes from `state` to the root, not including state.
-  Iterable<State<T>> ancestors(State<T> state) sync* {
-    var probe = state.parent;
-    while (probe != null) {
-      yield probe;
-      probe = probe.parent;
-    }
-  }
+  /// All nodes in this set from `state` to the root, not including state.
+  Iterable<State<T>> ancestors(State<T> state, {State<T>? upTo}) =>
+      state.ancestors(upTo: upTo).where((s) => contains(s));
 
-  /// All active children of `state`, and their active children, not including state.
+  /// All children of `state`, and their children, in this set. Excludes `state`.
   Iterable<State<T>> descendents(State<T> state) sync* {
     for (var s in storage.where((s) => s?.parent == state)) {
       yield s!;
