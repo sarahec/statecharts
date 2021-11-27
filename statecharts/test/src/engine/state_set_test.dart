@@ -54,7 +54,9 @@ void main() {
   });
 
   group('extensions', () {
-    final set = StateSet(lightswitch)..add(onState);
+    final set = StateSet(lightswitch)
+      ..add(lightswitch)
+      ..add(onState);
 
     test('ancestors',
         () => expect(set.ancestors(onState), equals([lightswitch])));
