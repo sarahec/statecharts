@@ -38,6 +38,7 @@ class StateInfo<T> {
   bool get isSelected => type != NodeType.free && type != NodeType.exit;
 }
 
+@Deprecated('removing in favor of augmenting StateSet')
 class StateTree<T> extends StateTreeBase<T> {
   StateTree(RootState<T> root)
       : super(root, List.of([for (var s in root.toIterable) StateInfo(s)]));
