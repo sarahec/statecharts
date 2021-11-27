@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// ignore_for_file: non_constant_identifier_names
+
 import 'package:statecharts/statecharts.dart';
 
 // Using the example from https://statecharts.dev/glossary/history-state.html

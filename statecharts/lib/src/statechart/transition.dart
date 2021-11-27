@@ -36,7 +36,7 @@ class EventTransition<T> extends Transition<T> {
       {Iterable<String> targets = const [],
       required this.event,
       Condition<T>? condition,
-      type = TransitionType.External,
+      type = TransitionType.externalTransition,
       Action<T>? action})
       : super._(targets, condition, type, action);
 
@@ -80,7 +80,7 @@ class NonEventTransition<T> extends Transition<T> {
       {Iterable<String> targets = const [],
       this.after,
       Condition<T>? condition,
-      type = TransitionType.External,
+      type = TransitionType.externalTransition,
       Action<T>? action})
       : super._(targets, condition, type, action);
 
@@ -128,7 +128,7 @@ abstract class Transition<T> {
           String? event,
           Condition<T>? condition,
           Duration? after,
-          type = TransitionType.External,
+          type = TransitionType.externalTransition,
           Action<T>? action}) =>
       event != null
           ? EventTransition<T>(
@@ -170,4 +170,4 @@ abstract class Transition<T> {
 }
 
 /// Where  the transition should receive its events from.
-enum TransitionType { Internal, External }
+enum TransitionType { internalTransition, externalTransition }
