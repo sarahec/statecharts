@@ -13,62 +13,43 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 import 'package:statecharts/statecharts.dart';
 
-class History<T> {
+abstract class HistoryBase<T> {
   final RootState<T> root;
 
-  @visibleForOverriding
+  @visibleForTesting
   final Map<State<T>, Iterable<State<T>>> entries;
 
-  History(this.root) : entries = <State<T>, Set<State<T>>>{};
-
-  History.from(History<T> prior)
-      : root = prior.root,
-        entries = Map.from(prior.entries);
+  HistoryBase(this.root, [entries])
+      : entries = entries ?? <State<T>, Set<State<T>>>{};
 
   Iterable<State<T>>? operator [](State<T> probe) => entries[probe];
-
-  void addValues(State<T> s, StateTree<T> tree) {}
 
   bool contains(State<T> state) => entries.containsKey(state);
 
   Iterable<State<T>> get keys => entries.keys;
-
-  Iterable<State<T>> historyValuesFor(State<T> s, StateTree<T> tree) {
-    assert(s.containsHistoryState);
-    // Since this is called for states that are exiting, we have to use the prior active states
-    final activeChildren = tree.descendents(s);
-    final historyChildren = s.substates.whereType<HistoryState>();
-    // From the spec:
-    // If the 'type' of a <history> element is "shallow", the SCXML processor
-    // must record the immediately active children of its parent before taking
-    // any transition that exits the parent. If the 'type' of a <history>
-    // element is "deep", the SCXML processor must record the active atomic
-    // descendants of the parent before taking any transition that exits the
-    // parent.
-    //
-    // Note that in a conformant SCXML document, a <state> or <parallel>
-    // element may have both "deep" and "shallow" <history> children.
-    final result = <State<T>>{};
-    for (var hs in historyChildren) {
-      if (hs.type == HistoryDepth.shallow) {
-        result.addAll(activeChildren);
-      } else {
-        final deepChildren = [
-          for (var c in activeChildren) tree.descendents(c).last
-        ];
-        result.addAll(deepChildren);
-      }
-    }
-    return result;
-  }
-
-  History<T> toBuilder() => this;
-  History<T> build() => this;
 }
 
+class History<T> extends HistoryBase<T> {
+  History(RootState<T> root, [entries]) : super(root, entries);
+
+  HistoryBuilder<T> toBuilder() => HistoryBuilder(root, entries);
+}
+
+class HistoryBuilder<T> extends HistoryBase<T> {
+  HistoryBuilder(RootState<T> root,
+      [Map<State, Iterable<State>> entries = const {}])
+      : super(root, Map<State<T>, Iterable<State<T>>>.of(entries.cast()));
+
+  History<T> build() => History(root, UnmodifiableMapView(entries));
+
+  void add(State<T> s, Iterable<State<T>> values) {
+    if (values.isNotEmpty) entries[s] = values;
+  }
+}
 
 /*
   @visibleForOverriding

@@ -15,6 +15,7 @@
 
 import 'dart:collection';
 
+import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 import 'package:statecharts/statecharts.dart';
 
@@ -32,14 +33,22 @@ class StateSet<T> extends SetBase<State<T>> {
   @visibleForTesting
   final List<State<T>?> storage;
 
-  StateSet._(this.size, this.storage);
+  factory StateSet(RootState<T> root) =>
+      StateSet._(root.size, List.filled(root.size, null));
 
   @Deprecated('Use StateSet(<RootState<T>> root) instead')
   factory StateSet.withSize(int size) =>
       StateSet._(size, List.filled(size, null));
 
-  factory StateSet(RootState<T> root) =>
-      StateSet._(root.size, List.filled(root.size, null));
+  StateSet._(this.size, this.storage);
+
+  @override
+  Iterator<State<T>> get iterator => toList().iterator;
+
+  @override
+  int get length => storage.whereType<State<T>>().length;
+
+  Set<State<T>> get unmodifiable => UnmodifiableSetView(this);
 
   @override
   bool add(State<T> state) {
@@ -53,6 +62,10 @@ class StateSet<T> extends SetBase<State<T>> {
     return isNew;
   }
 
+  /// All nodes in this set from `state` to the root, not including state.
+  Iterable<State<T>> ancestors(State<T> state, {State<T>? upTo}) =>
+      state.ancestors(upTo: upTo).where((s) => contains(s));
+
   @override
   bool contains(Object? probe) =>
       probe != null &&
@@ -60,11 +73,13 @@ class StateSet<T> extends SetBase<State<T>> {
       probe.order < size &&
       storage[probe.order] == probe;
 
-  @override
-  Iterator<State<T>> get iterator => toList().iterator;
-
-  @override
-  int get length => storage.whereType<State<T>>().length;
+  /// All children of `state`, and their children, in this set. Excludes `state`.
+  Iterable<State<T>> descendents(State<T> state) sync* {
+    for (var s in storage.where((s) => s?.parent == state)) {
+      yield s!;
+      yield* descendents(s);
+    }
+  }
 
   @override
   State<T>? lookup(Object? probe) => contains(probe) ? probe as State<T> : null;
@@ -79,9 +94,6 @@ class StateSet<T> extends SetBase<State<T>> {
   }
 
   @override
-  Set<State<T>> toSet() => StateSet._(size, List.of(storage, growable: false));
-
-  @override
   List<State<T>> toList({bool growable = false}) {
     final result = storage.isEmpty
         ? List<State<T>>.empty()
@@ -90,15 +102,6 @@ class StateSet<T> extends SetBase<State<T>> {
     return result;
   }
 
-  /// All nodes in this set from `state` to the root, not including state.
-  Iterable<State<T>> ancestors(State<T> state, {State<T>? upTo}) =>
-      state.ancestors(upTo: upTo).where((s) => contains(s));
-
-  /// All children of `state`, and their children, in this set. Excludes `state`.
-  Iterable<State<T>> descendents(State<T> state) sync* {
-    for (var s in storage.where((s) => s?.parent == state)) {
-      yield s!;
-      yield* descendents(s);
-    }
-  }
+  @override
+  Set<State<T>> toSet() => StateSet._(size, List.of(storage, growable: false));
 }
