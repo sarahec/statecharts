@@ -24,57 +24,56 @@ const IntegrationTest = 'Integration test';
 void main() {
   test('initial state', () {
     final engine = Engine<void>(history_statechart);
-    expect(
-        engine.currentStep.tree.activeStates.ids, equals(['root', 'A', 'B']));
+    expect(engine.currentStep.activeStates.ids, equals(['A', 'B']));
   });
 
   // Trigger the history state without exiting `A`. This should
   // redirect to `C`.
   test('default history transition', () {
     final engine = Engine<void>(history_statechart); // [root, A, B]
+    expect(engine.currentStep.activeStates.ids, equals(['A', 'B']));
     engine.execute(anEvent: RESTORE_A);
-    expect(
-        engine.currentStep.tree.activeStates.ids, equals(['root', 'A', 'C']));
-  }, skip: IntegrationTest);
+    expect(engine.currentStep.activeStates.ids, equals(['A', 'C']));
+  });
 
   test('exit parent', () {
-    final engine = Engine<void>(history_statechart); // [root, A, B]
+    final engine = Engine<void>(history_statechart);
     engine.execute(anEvent: EXIT);
-    expect(engine.currentStep.tree.activeStates.ids,
-        containsAllInOrder(['root', 'ALT']));
-  }, skip: IntegrationTest);
+    expect(engine.currentStep.activeStates.ids, containsAllInOrder(['ALT']));
+  });
 
   group('restores', () {
     test('leaf state', () {
-      final engine = Engine<void>(history_statechart); // [root, A, B]
-      engine.execute(anEvent: EXIT); // [root, ALT, ALT1]
+      final engine = Engine<void>(history_statechart); // [A, B]
+      expect(engine.currentStep.activeStates.ids, equals(['A', 'B']));
+      engine.execute(anEvent: EXIT); // [ALT, ALT1]
+      expect(engine.currentStep.activeStates.ids, equals(['ALT', 'ALT1']));
       engine.execute(anEvent: RESTORE_A); // should remove ALT, add B
-      expect(
-          engine.currentStep.tree.activeStates.ids, equals(['root', 'A', 'B']));
+      expect(engine.currentStep.activeStates.ids, equals(['A', 'B']));
     });
 
     test('deep state', () {
       final engine = Engine<void>(history_statechart);
       engine.execute(anEvent: DEEP);
-      expect(engine.currentStep.tree.activeStates.ids,
-          containsAll(['root', 'A', 'D', 'D2']));
+      expect(
+          engine.currentStep.activeStates.ids, containsAll(['A', 'D', 'D2']));
       engine.execute(anEvent: EXIT);
       // make sure the active states are correct
-      var stateIDs = engine.currentStep.tree.activeStates.ids;
+      var stateIDs = engine.currentStep.activeStates.ids;
       expect(stateIDs, contains('ALT'));
       expect(stateIDs, isNot(contains('A')), reason: 'in alt tree');
       // now execute the history state
       engine.execute(anEvent: RESTORE_A);
       // Match deep history
-      expect(engine.currentStep.tree.activeStates.ids,
-          containsAll(['root', 'A', 'D', 'D2']));
+      expect(
+          engine.currentStep.activeStates.ids, containsAll(['A', 'D', 'D2']));
     });
 
     test('shallow state', () {
       final engine = Engine<void>(history_statechart);
       engine.execute(anEvent: EXIT);
       engine.execute(anEvent: DEEP);
-      var stateIDs = engine.currentStep.tree.activeStates.ids;
+      var stateIDs = engine.currentStep.activeStates.ids;
       expect(stateIDs, contains('ALT2b'));
       expect(stateIDs, isNot(contains('A')), reason: 'in alt tree');
       // engine.execute(anEvent: EXIT);
@@ -82,6 +81,6 @@ void main() {
       // // Match deep history
       // expect(engine.currentStep.activeStates.ids,
       //     containsAll(['root', 'A', 'D', 'D2']));
-    });
-  }, skip: IntegrationTest);
+    }, skip: IntegrationTest);
+  });
 }
