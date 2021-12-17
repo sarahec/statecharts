@@ -26,6 +26,7 @@ final RESTORE_ALT = 'restore_alt';
 
 final history_statechart = RootState<void>(
   'root',
+  initialTransition: Transition(targets: ['A']),
   substates: [
     State(
       'A',

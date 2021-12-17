@@ -71,7 +71,6 @@ class EventTransition<T> extends Transition<T> {
 /// factory method.
 ///
 /// Note that transitions, like states, are immutable once created.
-
 class NonEventTransition<T> extends Transition<T> {
   /// Time to trigger this. If null, this trabnsition triggers on its [condition]
   final Duration? after;
@@ -83,6 +82,22 @@ class NonEventTransition<T> extends Transition<T> {
       type = TransitionType.externalTransition,
       Action<T>? action})
       : super._(targets, condition, type, action);
+
+  /// Wraps a state's default substate (first substate) in a transaction for use
+  /// with the engine.
+  factory NonEventTransition.toDefaultState(State<T> state,
+          {Duration? after,
+          Condition<T>? condition,
+          type = TransitionType.externalTransition,
+          Action<T>? action}) =>
+      NonEventTransition(
+          targets: [state.substates.first.id!],
+          after: after,
+          condition: condition,
+          type: type,
+          action: action)
+        ..source = state
+        ..targetStates = [state.substates.first];
 
   /// Tests whether this transition matches based on [elapsedTime] and/or [condition],
   /// ignoring [anEvent].

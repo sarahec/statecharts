@@ -23,11 +23,10 @@ void main() {
       test('uses default initial state', () {
         final bulb = Lightbulb();
         final engine = Engine<Lightbulb>(lightswitch, context: bulb);
-        final tree = engine.currentStep.tree;
-        expect(tree.activeStates.ids, equals(['lightswitch', 'off']));
-        expect(tree.entryStates.ids, equals(['lightswitch', 'off']),
-            reason: 'all initial states are entry states');
-        expect(tree.exitStates, isEmpty, reason: 'no exit states');
+        final step = engine.currentStep;
+        expect(step.activeStates.ids, equals(['off']));
+        expect(step.entryStates.ids, equals(['off']));
+        expect(step.exitStates, isEmpty);
       });
 
       test('uses initial transition', () {
@@ -38,11 +37,11 @@ void main() {
             ],
             initialTransition: Transition<void>(targets: ['on']));
         final engine = Engine(switch2);
-        final tree = engine.currentStep.tree;
+        final step = engine.currentStep;
 
-        expect(tree.activeStates.ids, equals(['switch', 'on']));
-        expect(tree.entryStates.ids, equals(['switch', 'on']));
-        expect(tree.exitStates, isEmpty);
+        expect(step.activeStates.ids, equals(['on']));
+        expect(step.entryStates.ids, equals(['on']));
+        expect(step.exitStates, isEmpty);
       });
     });
 
@@ -57,12 +56,11 @@ void main() {
 
       test("executes 'on' transition", () {
         engine!.execute(anEvent: turnOn);
-        final tree = engine!.currentStep.tree;
-        expect(tree.activeStates.ids, equals(['lightswitch', 'on']),
-            reason: 'off -> on');
-        expect(tree.entryStates.ids, equals(['on']),
+        final step = engine!.currentStep;
+        expect(step.activeStates.ids, equals(['on']), reason: 'off -> on');
+        expect(step.entryStates.ids, equals(['on']),
             reason: 'entering on state');
-        expect(tree.exitStates.ids, equals(['off']),
+        expect(step.exitStates.ids, equals(['off']),
             reason: 'exiting off state');
       });
 
@@ -105,20 +103,18 @@ void main() {
 
     test('default initial state', () {
       final engine = Engine<void>(basicComposite);
-      expect(engine.currentStep.tree.activeStates.ids,
-          containsAll(['D', 'E', 'G']));
-      expect(engine.currentStep.tree.activeStates.first.id, equals('D'));
+      expect(engine.currentStep.activeStates.ids, containsAll(['E', 'G']));
     });
 
     test('timed transition', () {
       final engine = Engine<void>(basicComposite);
       engine.execute(anEvent: 'flick'); // self transition
-      expect(engine.currentStep.tree.activeStates.ids, equals(['D', 'E', 'G']));
+      expect(engine.currentStep.activeStates.ids, equals(['E', 'G']));
       engine.execute(elapsedTime: Duration(milliseconds: 250));
-      expect(engine.currentStep.tree.activeStates.ids, equals(['D', 'E', 'G']),
+      expect(engine.currentStep.activeStates.ids, equals(['E', 'G']),
           reason: 'before time');
       engine.execute(elapsedTime: Duration(milliseconds: 500));
-      expect(engine.currentStep.tree.activeStates.ids, equals(['D', 'F']),
+      expect(engine.currentStep.activeStates.ids, equals(['F']),
           reason: 'after timed transition');
     });
 
@@ -126,7 +122,7 @@ void main() {
       final engine = Engine<void>(basicComposite);
       // Should still trigger
       engine.execute(elapsedTime: Duration(milliseconds: 750));
-      expect(engine.currentStep.tree.activeStates.ids, containsAll(['D', 'F']),
+      expect(engine.currentStep.activeStates.ids, containsAll(['F']),
           reason: 'after timed transition');
     });
   });

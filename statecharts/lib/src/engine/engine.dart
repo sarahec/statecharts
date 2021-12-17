@@ -43,8 +43,10 @@ class Engine<T> implements EngineCallback {
   /// [root] The [RootState].
   /// [context] The data object.
   /// [step] The current step. If unspecified, creates a new, initial step.
-  Engine(this.root, {T? context, ExecutionStep<T>? step})
-      : _currentStep = step ?? ExecutionStep(StateTree(root), context) {
+  Engine(RootState<T> root, {T? context, ExecutionStep<T>? step})
+      // ignore: prefer_initializing_formals
+      : root = root,
+        _currentStep = step ?? ExecutionStep(root, context, History(root)) {
     if (step == null) initialize();
   }
 
@@ -76,18 +78,36 @@ class Engine<T> implements EngineCallback {
   }
 
   bool executeTransitions(Iterable<Transition<T>> transitions) {
-    final history = currentStep.history.toBuilder();
-
-    final tree = updateTree(transitions, currentStep.tree, history);
-
+    final builder = currentStep.toBuilder();
     final ctx = contextToBuilder(currentStep.context);
-    runTransitionActions(transitions, ctx, callback);
-    runExitStates(tree, ctx, callback); // TODO pass history builder
-    runDefaultEntries(tree, ctx, callback);
-    runEntryStates(tree, ctx, callback);
-    final context = buildContext(ctx);
-    _currentStep = ExecutionStep(tree, context,
-        transitions: transitions, history: history.build());
+
+    builder.applyTransitions(transitions);
+
+    // exit old
+    for (var s in builder.statesToExit) {
+      if (s.containsHistoryState) {
+        builder.saveHistory(s);
+      }
+      s.exit(context, callback);
+    }
+
+    // enter new
+    for (var s in builder.statesToEnter) {
+      s.enter(context, callback);
+      if (builder.statesForDefaultEntry.contains(s) &&
+          s.initialTransition?.action != null) {
+        s.initialTransition?.action!(context, callback);
+      }
+    }
+
+    // perform transition actions
+    for (var t in transitions) {
+      if (t.action != null) t.action!(context, callback);
+    }
+
+    _currentStep = builder.build(
+      buildContext(ctx),
+    );
     return true;
   }
 
@@ -129,116 +149,15 @@ class Engine<T> implements EngineCallback {
   Iterable<Transition<T>> getTransitions(
           ExecutionStep<T> step, String? anEvent, Duration? elapsedTime) =>
       [
-        for (var s in step.tree.activeStates)
+        // TODO determine when we should filter for atomic states per the spec
+        for (var s in step.activeStates) // removing: .where((s) => s.isAtomic))
           s.transitionFor(
               event: anEvent, elapsedTime: elapsedTime, context: step.context)
       ].where((t) => t != null).cast<Transition<T>>();
 
   void initialize() {
-    final b = _currentStep.tree.toBuilder();
-    final history = _currentStep.history;
-    b.select(root, type: NodeType.entry); // force the root's type
-    selectDescendents(root, b, history);
-    _currentStep =
-        ExecutionStep(b.build(), _currentStep.context, history: history);
-  }
-
-  void runDefaultEntries(StateTree<T> tree, ctx, EngineCallback? callback) {
-    for (var s in tree.defaultEntryStates) {
-      s.enter(context, callback);
-    }
-  }
-
-  /// Calls [State.onEntry] on the step's entry states.
-  @visibleForOverriding
-  void runEntryStates(StateTree<T> tree, T? context,
-      [EngineCallback? callback]) {
-    for (var s in tree.entryStates) {
-      s.enter(context, callback);
-    }
-  }
-
-  /// Calls [State.onExit] on the step's exit states.
-  @visibleForOverriding
-  void runExitStates(StateTree<T> tree, T? context,
-      [EngineCallback? callback]) {
-    for (var s in tree.exitStates) {
-      s.exit(context, callback);
-    }
-  }
-
-  /// Runs [Transition.action] for the selected transitions.
-  @visibleForOverriding
-  void runTransitionActions(Iterable<Transition<T>> transitions, T? context,
-      [EngineCallback? callback]) {
-    for (var t in transitions) {
-      if (t.action != null) t.action!(context, callback);
-    }
-  }
-
-  void selectAncestors(State<T> state, StateTreeBuilder<T> b,
-      [History? history]) {
-    var probe = state;
-    var parent = state.parent;
-    while (parent != null) {
-      b.linkParent(probe, parent);
-      probe = parent;
-      parent = probe.parent;
-    }
-  }
-
-  void selectDescendents(State<T> state, StateTreeBuilder<T> b,
-      [History? history]) {
-    if (state.isAtomic) return;
-    var probe = state;
-    while (probe.isCompound) {
-      if (probe.isParallel) {
-        for (var s in probe.substates) {
-          b.select(s, type: NodeType.defaultEntry);
-          selectDescendents(s, b, history);
-        }
-        break;
-      } else {
-        final next =
-            probe.initialTransition?.targetStates ?? [probe.substates.first];
-        if (next.isEmpty) break;
-        if (next.length > 1) {
-          for (var s in next) {
-            if (b.isSelected(s)) continue;
-            b.select(s);
-            selectAncestors(s, b, history);
-            selectDescendents(s, b, history);
-          }
-          break;
-        } else {
-          final child = next.single;
-          if (b.isSelected(child)) break;
-          b.select(child, type: NodeType.defaultEntry);
-          probe = child;
-        }
-      }
-    }
-  }
-
-  /// Updates the nodes in the tree by applying [transitions] in document order.
-  StateTree<T> updateTree(Iterable<Transition<T>> transitions,
-      StateTree<T> tree, History<T> history) {
-    if (transitions.isEmpty) return tree;
-    final orderedTransitions = List.of(transitions, growable: false)
-      ..sort((t1, t2) => (t2.source?.order ?? 0) - (t1.source?.order ?? 0));
-    final b = tree.toBuilder()..normalizeSelections();
-    // TODO pre-process history transitions
-    for (var t in orderedTransitions) {
-      final domain = getTransitionDomain(t, history);
-      assert(domain != null);
-      b.deselectDescendents(domain!);
-      final selections = [for (var targetID in t.targets) tree.find(targetID)!];
-      b.selectAll(selections);
-      for (var s in selections.reverseSorted) {
-        selectAncestors(s, b);
-        selectDescendents(s, b);
-      }
-    }
-    return b.build();
+    final initialTransition =
+        root.initialTransition ?? NonEventTransition.toDefaultState(root);
+    executeTransitions([initialTransition]);
   }
 }
