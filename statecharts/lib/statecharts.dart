@@ -42,7 +42,7 @@
 /// const turnOn = 'turnOn';
 /// const turnOff = 'turnOff';
 ///
-/// final countedLightswitch = RootState.newRoot<Lightbulb>('lightswitch2', [
+/// final countedLightswitch = RootState<Lightbulb>('lightswitch2', [
 ///  State<Lightbulb>('off',
 ///      transitions: [
 ///        Transition(

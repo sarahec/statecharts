@@ -67,8 +67,8 @@ class ExecutionStepBuilder<T> {
   Iterable<State<T>> get statesForDefaultEntry => _statesForDefaultEntry;
 
   /// States that require their default initializers as a result of resolving history, in order.
-  Map<State<T>, Transition<T>> get defaultHistoryTransitions =>
-      _defaultHistoryActions;
+  // Map<State<T>, Transition<T>> get defaultHistoryActions =>
+  //     _defaultHistoryActions;
 
   /// States that require [onEnter], in order.
   Iterable<State<T>> get statesToEnter => _statesToEnter;

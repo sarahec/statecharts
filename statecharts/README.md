@@ -1,7 +1,7 @@
 # Statecharts
 
 Why another state machine / statecharts package? I was looking for something akin to the Flutter view hierarchy --
-declarative, immutable, and a good candidate for implementing [SCXML](https://www.w3.org/TR/scxml/).
+declarative, immutable, and compatible with [SCXML](https://www.w3.org/TR/scxml/).
 
 ## Example
 
@@ -20,19 +20,16 @@ class Lightbulb {
 ```dart
 const turnOn = 'turnOn';
 const turnOff = 'turnOff';
-final res = StateResolver<Lightbulb>();
 
-final lightswitch = RootState.newRoot<Lightbulb>('lightswitch2', [
+final lightswitch = RootState<Lightbulb>('lightswitch', [
  State<Lightbulb>('off',
      transitions: [
-       res.transition(
-           targets: ['on'],
-           event: turnOn,
+       Transition(targets: ['on'], event: turnOn,)
      ],
      onEntry: (b, _) => b!.isOn = false),
  State<Lightbulb>('on',
      transitions: [
-       res.transition(targets: ['off'], event: turnOff),
+       Transition(targets: ['off'], event: turnOff),
      ],
      onEntry: (b, _) => b!.isOn = true),
 ]);
@@ -41,10 +38,9 @@ final lightswitch = RootState.newRoot<Lightbulb>('lightswitch2', [
 ### Execution
 
 ```dart
-final engine = await Future.value(lightswitch)
-           .then((ls) => Engine.initial<Lightbulb>(ls, bulb));
+final engine = Engine(ls, bulb));
 // Execute an event
-await engine.execute(anEvent: 'turnOn');
+engine.execute(anEvent: 'turnOn');
 ```
 
 ## Example with conditional transitions
@@ -65,12 +61,11 @@ Increment this field on the on -> off transition.
 ```dart
 const turnOn = 'turnOn';
 const turnOff = 'turnOff';
-final res = StateResolver<Lightbulb>();
 
-final countedLightswitch = RootState.newRoot<Lightbulb>('lightswitch2', [
+final countedLightswitch = RootState<Lightbulb>('lightswitch2', [
   State<Lightbulb>('off',
       transitions: [
-        res.transition(
+        Transition(
             targets: ['on'],
             event: turnOn,
             condition: (b) => b.cycleCount < 10),
@@ -78,7 +73,7 @@ final countedLightswitch = RootState.newRoot<Lightbulb>('lightswitch2', [
       onEntry: (b, _) => b!.isOn = false),
   State<Lightbulb>('on',
       transitions: [
-        res.transition(targets: ['off'], event: turnOff),
+        Transition(targets: ['off'], event: turnOff),
       ],
       onEntry: (b, _) => b!.isOn = true,
       onExit: (b, _) {
@@ -88,10 +83,9 @@ final countedLightswitch = RootState.newRoot<Lightbulb>('lightswitch2', [
 ```
 
 ```dart
-final engine = await Future.value(countedLightswitch)
-           .then((ls) => Engine.initial<Lightbulb>(ls, bulb));
+final engine = Engine(ls, bulb));
 // Execute an event
-await engine.execute(anEvent: 'turnOn');
+engine.execute(anEvent: 'turnOn');
 ```
 
 ## Generating code coverage
