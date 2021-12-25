@@ -26,7 +26,7 @@ import 'package:statecharts/statecharts.dart';
 /// Since we know that the states in a tree each have a unique `order`
 /// value starting at 0, we can get the size of the tree and allocate
 /// a fixed-length list of that size. Most operations then become a
-/// quick list lookup
+/// quick list lookup.
 class StateSet<T> extends SetBase<State<T>> {
   @visibleForTesting
   final int size;
@@ -35,10 +35,6 @@ class StateSet<T> extends SetBase<State<T>> {
 
   factory StateSet(RootState<T> root) =>
       StateSet._(root.size, List.filled(root.size, null));
-
-  @Deprecated('Use StateSet(<RootState<T>> root) instead')
-  factory StateSet.withSize(int size) =>
-      StateSet._(size, List.filled(size, null));
 
   StateSet._(this.size, this.storage);
 
@@ -62,7 +58,8 @@ class StateSet<T> extends SetBase<State<T>> {
     return isNew;
   }
 
-  /// All nodes in this set from `state` to the root, not including state.
+  /// All nodes in this set from `state` to [upTo] (or `root` if not specified),
+  /// not including [state].
   Iterable<State<T>> ancestors(State<T> state, {State<T>? upTo}) =>
       state.ancestors(upTo: upTo).where((s) => contains(s));
 
