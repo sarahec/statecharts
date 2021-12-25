@@ -28,9 +28,9 @@ import 'package:statecharts/statecharts.dart';
 /// final lightswitch = RootState<Lightbulb>(
 ///    'lightswitch', [stateOff, stateOn]);
 ///
-/// final engine = Engine.initial<Lightbulb>(ls, bulb));
+/// final engine = Engine(ls, bulb));
 /// // Execute an event
-/// await engine.execute(anEvent: 'turnOn');
+/// engine.execute(anEvent: 'turnOn');
 /// ```
 class Engine<T> implements EngineCallback {
   /// The root of the tree (statechart).
@@ -55,14 +55,23 @@ class Engine<T> implements EngineCallback {
   /// The data this engine is managing.
   T? get context => _currentStep.context;
 
-  /// Current execution state.
+  /// Current execution state (immutable).
   ExecutionStep<T> get currentStep => _currentStep;
 
-  T? buildContext(dynamic ctx) => ctx;
+  /// Override if the context implements the builder pattern.
+  ///
+  /// This takes a context builder and returns a new context with the changes.
+  /// Default implementation is a no-op.
+  T? buildContext(dynamic builder) => builder;
 
+  /// Override if the context implements the builder pattern.
+  ///
+  /// This should return a builder for the context.
+  /// Default implementation is a no-op.
   dynamic contextToBuilder(T? context) => context;
 
-  /// Executes the matching transitions, returning `true` if anything changes.
+  /// Finds and executes transitions matching the given conditions, returning
+  /// `true` if anything matched.
   ///
   /// May execute additional transitions where [Transition.condition] matches.
   ///
@@ -70,14 +79,21 @@ class Engine<T> implements EngineCallback {
   /// [elapsedTime] The time to match.
   bool execute({String? anEvent, Duration? elapsedTime}) {
     final transitions = getTransitions(_currentStep, anEvent, elapsedTime);
-    if (transitions.isEmpty) {
-      return false;
-    }
-
-    return executeTransitions(transitions);
+    _currentStep = executeTransitions(transitions);
+    return transitions.isNotEmpty;
   }
 
-  bool executeTransitions(Iterable<Transition<T>> transitions) {
+  /// Runs all the transitions in order. Rerturns an updated [ExecutionStep].
+  ///
+  /// Note: this opens a builder for the context, [ExecutionStep], and
+  /// (indirectly) [History]. These are all rebuilt after applying changes.
+  ///
+  /// [transitions] list of transitions to execute. Should not be empty.
+  ///
+  @visibleForOverriding
+  ExecutionStep<T> executeTransitions(Iterable<Transition<T>> transitions) {
+    if (transitions.isEmpty) return _currentStep;
+
     final builder = currentStep.toBuilder();
     final ctx = contextToBuilder(currentStep.context);
 
@@ -105,10 +121,9 @@ class Engine<T> implements EngineCallback {
       if (t.action != null) t.action!(context, callback);
     }
 
-    _currentStep = builder.build(
+    return builder.build(
       buildContext(ctx),
     );
-    return true;
   }
 
   /// All targets of 'transition' after replacing any history states.
@@ -144,7 +159,7 @@ class Engine<T> implements EngineCallback {
     return State.commonSubtree([t.source!, ...tstates]);
   }
 
-  /// Locates the transactions used by [execute].
+  /// Locates the transitions used by [execute].
   @visibleForOverriding
   Iterable<Transition<T>> getTransitions(
           ExecutionStep<T> step, String? anEvent, Duration? elapsedTime) =>
@@ -155,9 +170,11 @@ class Engine<T> implements EngineCallback {
               event: anEvent, elapsedTime: elapsedTime, context: step.context)
       ].where((t) => t != null).cast<Transition<T>>();
 
+  /// Loads the initial states based on `root.initialTransition` or the first
+  /// child of the root.
   void initialize() {
     final initialTransition =
         root.initialTransition ?? NonEventTransition.toDefaultState(root);
-    executeTransitions([initialTransition]);
+    _currentStep = executeTransitions([initialTransition]);
   }
 }

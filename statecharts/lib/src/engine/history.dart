@@ -57,19 +57,3 @@ class HistoryBuilder<T> extends HistoryBase<T> {
 
   History<T> build() => History(root, UnmodifiableMapView(entries));
 }
-
-/*
-  @visibleForOverriding
-  Iterable<State<T>> replaceHistoryStates(
-      Iterable<State<T>> selections, History<T> fromHistory) {
-    final _historyStates = selections.whereType<HistoryState<T>>();
-    if (_historyStates.isEmpty) return selections;
-    final concreteStates = selections.toSet();
-    concreteStates.removeAll(_historyStates);
-    for (var h in _historyStates) {
-      concreteStates.addAll(fromHistory[h] ?? h.transition.targetStates);
-    }
-    return concreteStates;
-  }
-*/
-
