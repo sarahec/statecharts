@@ -35,7 +35,7 @@ void main() {
               .toBuilder();
       builder.addAncestorStatesToEnter(lightswitch.find('off')!);
       expect(builder.activeStates.ids, isEmpty); // no prior states
-      expect(builder.statesToEnter.ids, equals(['lightswitch']));
+      expect(builder.statesToEnter.ids, isEmpty);
       expect(builder.statesForDefaultEntry.ids, isEmpty);
       expect(builder.statesToExit, isEmpty);
     });
@@ -92,8 +92,7 @@ void main() {
       expect(builder.statesToEnter, isEmpty);
       builder.addAncestorStatesToEnter(tree.find('a21')!);
       expect(builder.activeStates.ids, isEmpty); // no prior states
-      expect(
-          builder.statesToEnter.ids, equals(['root', 'a', 'a1', 'a2', 'a21']));
+      expect(builder.statesToEnter.ids, equals(['a', 'a1', 'a2', 'a21']));
       expect(builder.statesForDefaultEntry.ids, equals(['a2']));
       expect(builder.statesToExit, isEmpty);
     });
