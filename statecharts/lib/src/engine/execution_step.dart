@@ -27,8 +27,8 @@ class ExecutionStep<T> {
   final Iterable<State<T>> activeStates,
       entryStates,
       exitStates,
-      defaultEntryStates,
-      historyStatesForDefaultEntry;
+      defaultEntryStates;
+  final Map<State<T>, Transition<T>> defaultHistoryActions;
   final T? context;
 
   ExecutionStep(this.root, this.context, this.history,
@@ -37,7 +37,7 @@ class ExecutionStep<T> {
       this.entryStates = const [],
       this.exitStates = const [],
       this.defaultEntryStates = const [],
-      this.historyStatesForDefaultEntry = const []});
+      this.defaultHistoryActions = const {}});
 
   ExecutionStepBuilder<T> toBuilder() =>
       ExecutionStepBuilder(root, history, activeStates);
@@ -49,7 +49,7 @@ class ExecutionStepBuilder<T> {
   late final HistoryBuilder<T> history;
   late final StateSet<T> activeStates;
   late final StateSet<T> _statesToEnter, _statesForDefaultEntry, _statesToExit;
-  final _defaultHistoryTransitions = <State<T>, Transition<T>>{};
+  final _defaultHistoryActions = <State<T>, Transition<T>>{};
   late final Iterable<Transition<T>> transitions;
 
   ExecutionStepBuilder(this.root, History<T> priorHistory,
@@ -68,7 +68,7 @@ class ExecutionStepBuilder<T> {
 
   /// States that require their default initializers as a result of resolving history, in order.
   Map<State<T>, Transition<T>> get defaultHistoryTransitions =>
-      _defaultHistoryTransitions;
+      _defaultHistoryActions;
 
   /// States that require [onEnter], in order.
   Iterable<State<T>> get statesToEnter => _statesToEnter;
@@ -83,6 +83,7 @@ class ExecutionStepBuilder<T> {
   @visibleForTesting
   void addAncestorStatesToEnter(State<T> state, [State<T>? ancestor]) {
     for (var anc in state.ancestors(upTo: ancestor)) {
+      if (anc is RootState<T>) continue;
       _statesToEnter.add(anc);
       if (anc.isParallel) {
         for (var child in anc.substates) {
@@ -98,8 +99,9 @@ class ExecutionStepBuilder<T> {
   @visibleForTesting
   void addDescendantStatesToEnter(State<T> state) {
     if (state is HistoryState<T>) {
-      if (history.contains(state)) {
-        final historyValue = history[state]!;
+      final parent = state.parent!;
+      if (history.contains(parent)) {
+        final historyValue = history[parent]!;
         for (var s in historyValue) {
           addDescendantStatesToEnter(s);
         }
@@ -107,7 +109,7 @@ class ExecutionStepBuilder<T> {
           addAncestorStatesToEnter(s, state.parent);
         }
       } else {
-        defaultHistoryContent[state.parent!] = state.transition;
+        _defaultHistoryActions[state.parent!] = state.transition;
         for (var s in state.transition.targetStates) {
           addDescendantStatesToEnter(s);
         }
@@ -151,7 +153,8 @@ class ExecutionStepBuilder<T> {
             ..removeAll(_statesToExit),
           entryStates: _statesToEnter,
           defaultEntryStates: _statesForDefaultEntry,
-          exitStates: _statesToExit);
+          exitStates: _statesToExit,
+          defaultHistoryActions: _defaultHistoryActions);
 
   /// Computes [statesToEnter] and [statesForDefaultEntry] using the transitions.
   @visibleForTesting

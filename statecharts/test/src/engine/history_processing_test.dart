@@ -31,25 +31,32 @@ void main() {
   // redirect to `C`.
   test('default history transition', () {
     final engine = Engine<void>(history_statechart); // [root, A, B]
-    expect(engine.currentStep.activeStates.ids, equals(['A', 'B']));
     engine.execute(anEvent: RESTORE_A);
     expect(engine.currentStep.activeStates.ids, equals(['A', 'C']));
   });
 
-  test('exit parent', () {
+  test('records history on exit', () {
     final engine = Engine<void>(history_statechart);
     engine.execute(anEvent: EXIT);
-    expect(engine.currentStep.activeStates.ids, containsAllInOrder(['ALT']));
+    expect(engine.currentStep.activeStates.ids, equals(['ALT', 'ALT1']));
+    expect(engine.currentStep.history.find('A')?.ids, equals(['B']));
   });
 
   group('restores', () {
+    test('default', () {
+      final engine = Engine<void>(history_statechart); // [A, B]
+      engine.execute(
+          anEvent: RESTORE_A); // change B to C  from default transi9tion
+      expect(engine.currentStep.activeStates.ids, equals(['A', 'C']),
+          reason: 'C is the default if none recorded');
+    });
+
     test('leaf state', () {
       final engine = Engine<void>(history_statechart); // [A, B]
-      expect(engine.currentStep.activeStates.ids, equals(['A', 'B']));
       engine.execute(anEvent: EXIT); // [ALT, ALT1]
-      expect(engine.currentStep.activeStates.ids, equals(['ALT', 'ALT1']));
-      engine.execute(anEvent: RESTORE_A); // should remove ALT, add B
-      expect(engine.currentStep.activeStates.ids, equals(['A', 'B']));
+      engine.execute(anEvent: RESTORE_A); // should remove ALT, restore A, B
+      expect(engine.currentStep.activeStates.ids, equals(['A', 'B']),
+          reason: 'B was active at exit');
     });
 
     test('deep state', () {
@@ -72,15 +79,8 @@ void main() {
     test('shallow state', () {
       final engine = Engine<void>(history_statechart);
       engine.execute(anEvent: EXIT);
-      engine.execute(anEvent: DEEP);
-      var stateIDs = engine.currentStep.activeStates.ids;
-      expect(stateIDs, contains('ALT2b'));
-      expect(stateIDs, isNot(contains('A')), reason: 'in alt tree');
-      // engine.execute(anEvent: EXIT);
-      // engine.execute(anEvent: RESTORE_A);
-      // // Match deep history
-      // expect(engine.currentStep.activeStates.ids,
-      //     containsAll(['root', 'A', 'D', 'D2']));
-    }, skip: IntegrationTest);
+      engine.execute(anEvent: RESTORE_ALT);
+      expect(engine.currentStep.activeStates.ids, equals(['A', 'E']));
+    });
   });
 }

@@ -37,6 +37,7 @@ final history_statechart = RootState<void>(
         State('B'),
         State('C'),
         State('D', substates: [State('D1'), State('D2')]),
+        State('E'),
       ],
       initialTransition: Transition(targets: ['B']),
       transitions: [
@@ -55,7 +56,7 @@ final history_statechart = RootState<void>(
           substates: [State('ALT2a'), State('ALT2b')],
         ),
         HistoryState('ALT_AGAIN',
-            transition: Transition(targets: ['C']), type: HistoryDepth.shallow),
+            transition: Transition(targets: ['E']), type: HistoryDepth.shallow),
       ],
       transitions: [
         Transition(event: RESTORE_A, targets: ['A_AGAIN']),

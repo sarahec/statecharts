@@ -17,6 +17,12 @@ import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 import 'package:statecharts/statecharts.dart';
 
+class History<T> extends HistoryBase<T> {
+  History(RootState<T> root, [entries]) : super(root, entries);
+
+  HistoryBuilder<T> toBuilder() => HistoryBuilder(root, entries);
+}
+
 abstract class HistoryBase<T> {
   final RootState<T> root;
 
@@ -26,17 +32,18 @@ abstract class HistoryBase<T> {
   HistoryBase(this.root, [entries])
       : entries = entries ?? <State<T>, Set<State<T>>>{};
 
+  @visibleForTesting
+  Iterable<State<T>> get keys => entries.keys;
+
   Iterable<State<T>>? operator [](State<T> probe) => entries[probe];
 
   bool contains(State<T> state) => entries.containsKey(state);
 
-  Iterable<State<T>> get keys => entries.keys;
-}
-
-class History<T> extends HistoryBase<T> {
-  History(RootState<T> root, [entries]) : super(root, entries);
-
-  HistoryBuilder<T> toBuilder() => HistoryBuilder(root, entries);
+  @visibleForTesting
+  Iterable<State<T>>? find(String id) {
+    final probe = entries.keys.firstWhereOrNull((s) => s.id == id);
+    return probe == null ? null : entries[probe];
+  }
 }
 
 class HistoryBuilder<T> extends HistoryBase<T> {
@@ -44,11 +51,11 @@ class HistoryBuilder<T> extends HistoryBase<T> {
       [Map<State, Iterable<State>> entries = const {}])
       : super(root, Map<State<T>, Iterable<State<T>>>.of(entries.cast()));
 
-  History<T> build() => History(root, UnmodifiableMapView(entries));
-
   void add(State<T> s, Iterable<State<T>> values) {
     if (values.isNotEmpty) entries[s] = values;
   }
+
+  History<T> build() => History(root, UnmodifiableMapView(entries));
 }
 
 /*
