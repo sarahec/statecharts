@@ -93,7 +93,7 @@ engine.execute(anEvent: 'turnOn');
 Generate `coverage/lcov.info`.
 
 ```sh
-tools/coverage.sh
+tool/coverage.sh
 ```
 
 View in the LCOV tool of your choice.

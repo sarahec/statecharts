@@ -27,5 +27,5 @@ doc/api/
 
 # Code coverage
 lcov.info
-coverage
+coverage/
 .tempCoverageDir
