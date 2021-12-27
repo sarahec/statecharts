@@ -75,6 +75,7 @@ class RootState<T> extends State<T> {
     stateMap = {
       for (var s in toIterable.where((s1) => s1.id != null)) s.id!: s
     };
+    depth = 0;
     order = 0;
     parent = null;
     resolveTransitions(stateMap);
@@ -91,20 +92,24 @@ class RootState<T> extends State<T> {
   void finishTree() {
     var _order = 1;
 
-    void finishSubstates(State<T> node) {
+    void finishSubstates(State<T> node, int depth) {
       for (var s in node.substates) {
         s.parent = node;
         s.order = _order++;
+        s.depth = depth + 1;
         s.resolveTransitions(stateMap);
-        finishSubstates(s);
+        finishSubstates(s, depth + 1);
       }
     }
 
-    finishSubstates(this);
+    finishSubstates(this, 0);
   }
 }
 
 class State<T> {
+  /// How many layers down does this node live?
+  late final int depth;
+
   /// Index into its parent's substates
   late final int order;
 

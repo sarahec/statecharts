@@ -15,6 +15,8 @@
 import 'package:statecharts/statecharts.dart';
 import 'package:test/test.dart';
 
+import '../examples/lightswitch.dart';
+
 void main() {
   final a2 = State('a2');
   final a1 = State('a1');
@@ -28,10 +30,7 @@ void main() {
   ]);
 
   group('construction', () {
-    test(
-        'parents',
-        () => expect(
-            tree.toIterable.map((s) => s.parent), equals([null, tree, a, a])));
+    test('depth', () => expect(tree.depth, equals(0)));
 
     test(
         'order',
@@ -43,6 +42,11 @@ void main() {
               2,
               3,
             ])));
+
+    test(
+        'parents',
+        () => expect(
+            tree.toIterable.map((s) => s.parent), equals([null, tree, a, a])));
   });
 
   group('utilities', () {
@@ -72,6 +76,39 @@ void main() {
       expect(State.commonSubtree([a1, a]), equals(a));
       expect(State.commonSubtree([a1, a1]), equals(a1));
       expect(State.commonSubtree([a1, tree]), equals(tree));
+    });
+  });
+
+  group('tree setup:', () {
+    final root = lightswitch;
+    test('initial transition', () {
+      for (var s in root.initialStates) {
+        expect(root.find(s.id!), isNotNull);
+      }
+    });
+
+    test('order assignment', () {
+      var n = 0;
+      for (var s in root.toIterable) {
+        expect(s.order, equals(n));
+        n += 1;
+      }
+    });
+
+    test('depth assignment', () {
+      for (var s in root.toIterable) {
+        expect(s.depth - 1, equals(s.parent?.depth ?? -1));
+      }
+    });
+
+    test('transition targets', () {
+      for (var s in root.toIterable.skip(1)) {
+        for (var t in s.transitions) {
+          for (var ts in t.targetStates) {
+            expect(root.find(ts.id!), isNotNull);
+          }
+        }
+      }
     });
   });
 }

@@ -32,6 +32,10 @@ class HistoryState<T> implements State<T> {
   /// Specifies the default active states if none found in the history.
   final Transition<T> transition;
 
+  /// Depth in the tree (root = 0)
+  @override
+  late final int depth;
+
   /// Index into its parent's substates
   @override
   late final int order;
