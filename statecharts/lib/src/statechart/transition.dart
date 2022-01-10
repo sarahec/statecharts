@@ -125,7 +125,7 @@ abstract class Transition<T> {
   final Condition<T>? condition;
 
   /// Optional human-readable description.
-  final String? description;
+  final String? _description;
 
   /// The actual target states.
   late final Iterable<State<T>> targetStates;
@@ -168,7 +168,10 @@ abstract class Transition<T> {
               description: description);
 
   Transition._(
-      this.targets, this.condition, this.type, this.action, this.description);
+      this.targets, this.condition, this.type, this.action, this._description);
+
+  /// A human-readable description. If none supplied, returns a default description.
+  String get description => _description ?? 'select: ${targets.join(",")}';
 
   /// See subclasses
   bool matches(
