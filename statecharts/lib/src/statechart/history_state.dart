@@ -25,6 +25,9 @@ class HistoryState<T> implements State<T> {
   @override
   final String? id;
 
+  @override
+  final String? description;
+
   /// Whether to replace with state [id] ([HistoryDepth.shallow]) or
   /// with the state and all its descendents ([HistoryDepth.deep]).
   final HistoryDepth type;
@@ -45,7 +48,9 @@ class HistoryState<T> implements State<T> {
   late final State<T>? parent;
 
   HistoryState(this.id,
-      {required this.transition, this.type = HistoryDepth.deep});
+      {required this.transition,
+      this.type = HistoryDepth.deep,
+      this.description});
 
   /// Not applicable
   @override

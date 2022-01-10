@@ -29,3 +29,10 @@ Added test coverage tooling.
 ## 1.1.1
 
 Adds `depth` to State for use with layout algorithms.
+
+## 1.1.2
+
+Adds `description` to State and Transition for documenting statecharts in-place.
+
+
+

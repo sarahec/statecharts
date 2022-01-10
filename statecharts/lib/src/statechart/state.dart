@@ -57,6 +57,7 @@ class RootState<T> extends State<T> {
   /// Create the root node.
   RootState(id,
       {required Iterable<State<T>> substates,
+      String? description,
       Iterable<Transition<T>> transitions = const [],
       Action? onEntry,
       Action? onExit,
@@ -67,6 +68,7 @@ class RootState<T> extends State<T> {
         super(id,
             substates: substates,
             transitions: transitions,
+            description: description,
             onEntry: onEntry,
             onExit: onExit,
             isFinal: isFinal,
@@ -110,6 +112,8 @@ class State<T> {
   /// How many layers down does this node live?
   late final int depth;
 
+  final String? description;
+
   /// Index into its parent's substates
   late final int order;
 
@@ -144,6 +148,7 @@ class State<T> {
 
   /// Creates a new [State]
   ///
+  /// [description] Optional human-readable description
   /// [transitions] If present, the available transitions out of this state.
   /// [onEntry] Called when this state is entered.
   /// [onExit] Called when this state is exited.
@@ -153,7 +158,8 @@ class State<T> {
   /// [initialTransition] A transition designating which substate shoud be
   /// activated on entry.
   State(this.id,
-      {this.transitions = const [],
+      {this.description,
+      this.transitions = const [],
       this.onEntry,
       this.onExit,
       this.isFinal = false,

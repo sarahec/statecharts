@@ -35,10 +35,11 @@ class EventTransition<T> extends Transition<T> {
   EventTransition(
       {Iterable<String> targets = const [],
       required this.event,
+      String? description,
       Condition<T>? condition,
       type = TransitionType.externalTransition,
       Action<T>? action})
-      : super._(targets, condition, type, action);
+      : super._(targets, condition, type, action, description);
 
   /// Tests whether this transition matches based on [event] and/or [condition],
   /// ignoring [elapsedTime].
@@ -79,9 +80,10 @@ class NonEventTransition<T> extends Transition<T> {
       {Iterable<String> targets = const [],
       this.after,
       Condition<T>? condition,
+      String? description,
       type = TransitionType.externalTransition,
       Action<T>? action})
-      : super._(targets, condition, type, action);
+      : super._(targets, condition, type, action, description);
 
   /// Wraps a state's default substate (first substate) in a transaction for use
   /// with the engine.
@@ -122,6 +124,9 @@ abstract class Transition<T> {
   /// If true, this transition should be triggered.
   final Condition<T>? condition;
 
+  /// Optional human-readable description.
+  final String? description;
+
   /// The actual target states.
   late final Iterable<State<T>> targetStates;
 
@@ -141,6 +146,7 @@ abstract class Transition<T> {
   factory Transition(
           {Iterable<String> targets = const [],
           String? event,
+          String? description,
           Condition<T>? condition,
           Duration? after,
           type = TransitionType.externalTransition,
@@ -151,15 +157,18 @@ abstract class Transition<T> {
               targets: targets,
               condition: condition,
               type: type,
-              action: action)
+              action: action,
+              description: description)
           : NonEventTransition<T>(
               after: after,
               targets: targets,
               condition: condition,
               type: type,
-              action: action);
+              action: action,
+              description: description);
 
-  Transition._(this.targets, this.condition, this.type, this.action);
+  Transition._(
+      this.targets, this.condition, this.type, this.action, this.description);
 
   /// See subclasses
   bool matches(
